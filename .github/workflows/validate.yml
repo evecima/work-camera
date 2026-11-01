@@ -1,0 +1,21 @@
+name: Validate Work Camera
+on:
+  push:
+  pull_request:
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify JS syntax
+        run: |
+          node --check app.js
+          node --check onedrive.js
+          node --check service-worker.js
+      - name: Validate catalog and OneDrive logic
+        run: |
+          node tests/catalog-smoke.cjs
+          node tests/onedrive-smoke.cjs

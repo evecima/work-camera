@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#0f1726">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Work Camera">
+  <meta name="robots" content="noindex,nofollow,noarchive">
+  <meta name="description" content="Work Camera photo sorting prototype for maintenance locations">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="apple-touch-icon" href="icons/icon-192.png">
+  <link rel="stylesheet" href="styles.css">
+  <title>Work Camera — V2 OneDrive-ready</title>
+</head>
+<body>
+<div id="app" class="shell">
+  <header class="header">
+    <div class="brand"><div class="brand-icon">📸</div><div><h1>Work Camera</h1><p>GREENBRIER · PHOTO MANAGER</p></div></div>
+    <div class="header-status" id="headerStatus" title="Backup status">LOCAL ONLY</div>
+  </header>
+  <div class="warning" id="backup-warning" role="note"><strong>Cloud backup not connected.</strong> Photos remain only on this device until you connect OneDrive and sync successfully. Do not rely on local-only photos as a permanent backup.</div>
+
+  <main>
+    <section id="view-locations" class="view active" aria-labelledby="locations-title">
+      <div class="section-heading"><h2 id="locations-title">Choose location</h2><p>Pick a destination before opening the camera.</p></div>
+      <div class="segment" role="tablist" aria-label="Location group">
+        <button type="button" id="mode-buildings" class="active" role="tab" aria-selected="true">Buildings</button>
+        <button type="button" id="mode-facilities" role="tab" aria-selected="false">Facilities</button>
+      </div>
+      <div id="building-selection">
+        <label for="building">BUILDING</label>
+        <select id="building" aria-label="Select building"></select>
+        <label>AREA</label>
+        <div id="areas" class="area-grid" role="group" aria-label="Select area"></div>
+        <div id="unit-section" class="hide">
+          <label for="unit">APARTMENT</label>
+          <select id="unit" aria-label="Select apartment"></select>
+        </div>
+      </div>
+      <div id="facility-selection" class="hide">
+        <label>FACILITY</label>
+        <div id="facilities" class="facility-list" role="group" aria-label="Select facility"></div>
+      </div>
+      <div class="destination"><small>PHOTO DESTINATION</small><div>📁 <span id="selected-path"></span></div></div>
+      <button type="button" id="open-camera" class="btn btn-primary btn-large">📸 &nbsp; Open Camera</button>
+    </section>
+
+    <section id="view-camera" class="view" aria-labelledby="camera-title">
+      <div class="camera-bar"><button type="button" id="change-location" class="btn btn-secondary">‹ Change location</button><span class="pill">Ready</span></div>
+      <h2 id="camera-title" class="sr-only">Camera</h2>
+      <div class="camera-stage">
+        <video id="camera-video" playsinline autoplay muted></video>
+        <div id="camera-placeholder" class="camera-placeholder"><span>📷</span><strong>Camera preview</strong><p>Allow access to your camera to take a work photo.</p></div>
+        <canvas id="photo-canvas" class="hide"></canvas>
+      </div>
+      <div class="camera-actions">
+        <button type="button" class="btn btn-secondary" id="camera-retry" title="Restart camera">↻</button>
+        <button type="button" id="shutter" class="shutter" aria-label="Take photo" disabled><span></span></button>
+        <label for="file-camera" class="file-button" title="Use system camera / select image">＋</label>
+        <input type="file" id="file-camera" accept="image/*" capture="environment" aria-label="Use phone camera fallback" class="visually-hidden">
+      </div>
+      <div class="destination destination-camera"><small>PHOTOS GO TO</small><div>📁 <span id="camera-path"></span></div></div>
+      <div class="notification" id="camera-message" role="status" aria-live="polite"></div>
+      <p class="hint">Use the white shutter to capture. If camera preview is unavailable, use the ＋ button.</p>
+    </section>
+
+    <section id="view-gallery" class="view" aria-labelledby="gallery-title">
+      <div class="section-heading"><h2 id="gallery-title">Work Gallery</h2><p>Photos saved in this device, with individual OneDrive backup status.</p></div>
+      <div class="gallery-toolbar"><select id="gallery-filter" aria-label="Filter gallery"><option value="all">All locations</option><option value="current">Current location</option></select><span id="photo-count">0 photos</span></div>
+      <div id="gallery-grid" class="gallery-grid"></div>
+      <div id="gallery-empty" class="empty"><span>🖼️</span><h3>No photos yet</h3><p>Choose a location, open the camera and take a photo.</p></div>
+    </section>
+
+    <section id="view-settings" class="view" aria-labelledby="settings-title">
+      <div class="section-heading"><h2 id="settings-title">Storage & sync</h2><p>Independent Work Camera prototype</p></div>
+      <div class="info-card">
+        <h3>☁️ OneDrive personal — App Folder</h3>
+        <span class="offline-badge" id="cloud-status">Not connected</span>
+        <p>Use your own Microsoft Entra SPA registration with <code>Files.ReadWrite.AppFolder</code>. The app only requests access to its special OneDrive folder. It never asks for your Microsoft password.</p>
+        <label for="client-id">MICROSOFT APPLICATION (CLIENT) ID</label>
+        <input type="text" id="client-id" placeholder="00000000-0000-0000-0000-000000000000" autocapitalize="off" autocomplete="off" spellcheck="false">
+        <p><strong>Exact registered SPA redirect URI:</strong> <code id="redirect-uri"></code></p>
+        <div class="cloud-actions"><button type="button" class="btn btn-secondary" id="save-client-id">Save app ID</button><button type="button" class="btn btn-primary" id="connect-cloud">Connect OneDrive</button><button type="button" class="btn btn-secondary" id="disconnect-cloud">Disconnect</button></div>
+        <p id="auth-message" role="status"></p>
+      </div>
+      <div class="info-card"><h3>📤 Cloud sync</h3><div id="sync-summary">Checking local photos…</div><div class="cloud-actions"><button type="button" class="btn btn-primary" id="sync-photos">Sync pending photos</button><button type="button" class="btn btn-secondary" id="delete-verified">Free local space (verified only)</button></div><p id="sync-message" role="status">Upload works only while the app is open and a Microsoft session is connected. Never delete unsynced photos.</p></div>
+      <div class="info-card"><h3>📱 Local storage</h3><div id="storage-number">Checking photos…</div><p>Local browser storage can be cleared by iOS or the browser. Export any photos you want to keep. Only delete after an external backup is verified.</p></div>
+      <div class="info-card"><h3>🔐 Privacy</h3><p>Photos are kept separate from Apple Photos when captured through the in-app camera. Do not photograph residents' private information; follow employer policies before storing workplace photos in a personal cloud account.</p></div>
+    </section>
+  </main>
+
+  <nav class="bottom-nav" aria-label="Main navigation">
+    <button type="button" class="nav-item active" data-view="locations"><span>⌖</span><small>Locations</small></button>
+    <button type="button" class="nav-item" data-view="camera"><span>📷</span><small>Camera</small></button>
+    <button type="button" class="nav-item" data-view="gallery"><span>▦</span><small>Gallery</small></button>
+    <button type="button" class="nav-item" data-view="settings"><span>⚙</span><small>Storage</small></button>
+  </nav>
+</div>
+<dialog id="photo-dialog" aria-label="Photo details">
+  <div class="dialog-inner"><div class="dialog-head"><strong>Photo details</strong><button id="close-dialog" type="button" aria-label="Close">✕</button></div>
+  <img id="detail-image" alt="Work photo preview"><div id="detail-info"></div>
+  <div class="dialog-actions"><button id="export-photo" class="btn btn-secondary" type="button">Download copy</button><button id="open-cloud-photo" class="btn btn-secondary" type="button">Open OneDrive</button><button id="delete-photo" class="btn btn-danger" type="button">Delete photo</button></div></div>
+</dialog>
+<script src="data/apartments.js"></script>
+<script src="onedrive.js" defer></script>
+<script src="app.js" defer></script>
+</body>
+</html>
