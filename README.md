@@ -18,7 +18,7 @@
 ## Important: not ready for real work data yet
 
 - **No Microsoft account has been connected or used in a live test.** No cloud backup has yet been verified against the user's own OneDrive.
-- **No independent GitHub repository or HTTPS deployment has been created.** A clean separate repository is proposed: `evecima/work-camera`.
+- **Independent private GitHub repository created:** `evecima/work-camera` (`main`). **HTTPS hosting is not yet deployed**, so Microsoft OAuth is not configured and photos are not backed up.
 - Camera / photo library has **not been physically tested on iOS/Safari**. The browser automation environment blocked local navigation; syntax and isolated logic tests passed.
 - Web app storage (IndexedDB) can be cleared by a browser/OS. Until cloud verification, do not treat it as the only copy of important photos.
 - iOS may restrict operation when the PWA is closed; sync runs when the app is open, signed in, and online. There is no promise of background sync.
@@ -28,8 +28,8 @@
 
 ## Publish as a separate project
 
-1. Create a **new GitHub repository** under your account (e.g., `work-camera`). Do not place these files in `evecima/gb-af-tool` and do not modify that repository.
-2. Create the repository **private by default**; then copy the **contents of this directory** to the root of the new repository, including `onedrive.js` and `data/`.
+1. The independent private repository is now **`evecima/work-camera`**. Do not place these files in `evecima/gb-af-tool` and do not modify Apartment Finder.
+2. The V2.1 source files have been committed to `main`, including `onedrive.js` and `data/`.
 3. Publish through an HTTPS hosting service **with suitable access controls**. A static HTTPS site serves the code but does not by itself restrict access to the building/unit catalog. Never embed OAuth client secrets. Review hosting visibility and employer privacy requirements.
 4. Open the deployed app and record the exact **SPA redirect URI** displayed in Storage. It is `location.origin + location.pathname` and must match Microsoft Entra registration exactly.
 
