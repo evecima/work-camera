@@ -6,7 +6,7 @@
 
 One home-screen icon named **Work Camera** opens a simple home screen:
 
-- **Take Photo** — select a building, apartment/area or facility. Confirming the location immediately invokes iPhone's system photo capture interface (`input type=file accept=image/* capture=environment`), without Work Camera's former web-video viewfinder. It remembers the latest location. After accepting the photo, Work Camera opens its details for review, Share, Download or Delete.
+- **Take Photo** — select a building, apartment/area or facility. Confirming the location immediately invokes iPhone's system photo capture interface (`input type=file accept=image/* capture=environment`), without Work Camera's former web-video viewfinder. It remembers the latest location. After accepting a photo, Work Camera saves it and stays on the capture screen; details appear only when the user opens **My Photos** and taps a saved photo.
 - **My Photos** — browse local work photos by building, area and apartment; filter locations; use **Share** to invoke the iPhone share sheet for Messages, Mail, AirDrop or other compatible targets, **Download** to export the file, or **Delete** with confirmation. Shares are initiated by the user and do not constitute a backup.
 - **Weekly Backup** — create a ZIP of original photos sorted into folders; copy it to a computer, open and inspect it, explicitly confirm the backup, and only then unlock the delete-verified option.
 
