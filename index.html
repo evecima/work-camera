@@ -11,8 +11,8 @@
   <meta name="description" content="Offline maintenance camera and private on-device photo library">
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="apple-touch-icon" href="icons/icon-192.png">
-  <link rel="stylesheet" href="styles.css?v=3.3.0">
-  <title>Work Camera V3.3 — Local Photo Library</title>
+  <link rel="stylesheet" href="styles.css?v=3.4.0">
+  <title>Work Camera V3.4 — Continuous Camera</title>
 </head>
 <body>
 <div id="app" class="shell">
@@ -56,26 +56,42 @@
         <div id="facilities" class="facility-list" role="group" aria-label="Select facility"></div>
       </div>
       <div class="destination"><small>PHOTO DESTINATION</small><div>📁 <span id="selected-path"></span></div></div>
-      <button type="button" id="open-camera" class="btn btn-primary btn-large">📸 &nbsp; Take Photo</button>
+      <button type="button" id="open-camera" class="btn btn-primary btn-large">📸 &nbsp; iPhone Camera · One photo</button>
+      <button type="button" id="open-continuous" class="btn btn-secondary btn-large" style="margin-top:12px">📷 Continuous Camera · Several photos</button>
+      <p class="hint">iPhone Camera offers the system capture interface. Continuous Camera stays open for consecutive shots but has fewer camera controls.</p>
     </section>
 
     <section id="view-camera" class="view" aria-labelledby="camera-title">
       <div class="camera-bar"><button type="button" id="change-location" class="btn btn-secondary">‹ Change location</button><span class="pill">On device</span></div>
       <h2 id="camera-title" class="sr-only">Take Photo</h2>
-      <div class="native-camera-panel">
+      <div class="native-camera-panel" id="native-camera-panel">
         <div class="native-camera-icon" aria-hidden="true">📷</div>
         <h3>iPhone Camera</h3>
         <p>Capture a work photo using the iPhone's system camera interface. Review or retake in the camera before accepting it.</p>
         <label for="file-camera" class="btn btn-primary btn-large native-camera-label">📸 Take Photo</label>
+        <button type="button" id="camera-start-continuous" class="btn btn-secondary btn-large" style="white-space:normal">📷 Continuous Camera · Several photos</button>
         <input type="file" id="file-camera" accept="image/*" capture="environment" aria-label="Open iPhone camera" class="visually-hidden">
         <label for="file-import" class="btn btn-secondary btn-large native-camera-label">＋ Import from Photos</label>
         <input type="file" id="file-import" accept="image/*" aria-label="Import photo from Apple Photos" class="visually-hidden">
         <p class="native-camera-note">The system decides which camera controls are available here. For advanced Camera modes, take the photo in Apple's Camera app and import it afterward. Imported photos also remain in Apple Photos.</p>
       </div>
+      <div id="continuous-camera-panel" class="continuous-camera-panel hide" aria-label="Continuous photo capture">
+        <div class="continuous-preview">
+          <video id="continuous-video" playsinline autoplay muted aria-label="Live camera view"></video>
+          <div id="continuous-loading" class="continuous-loading">Starting camera…</div>
+        </div>
+        <div class="continuous-actions">
+          <button type="button" id="continuous-close" class="btn btn-secondary">✕ Close</button>
+          <button type="button" id="continuous-shutter" class="shutter" aria-label="Capture continuous photo" disabled><span></span></button>
+          <span id="continuous-count" class="continuous-counter">0 saved</span>
+        </div>
+        <p class="hint">Each tap saves a photo while this camera remains open. To use the complete iPhone capture controls, close this mode and select iPhone Camera.</p>
+        <canvas id="continuous-canvas" class="hide"></canvas>
+      </div>
       <div class="destination destination-camera"><small>PHOTOS GO TO</small><div>📁 <span id="camera-path"></span></div></div>
       <div class="notification" id="camera-message" role="status" aria-live="polite"></div>
       <button type="button" id="camera-view-gallery" class="btn btn-secondary btn-large">🖼️ View My Photos</button>
-      <p class="hint">Tap Use Photo to save and return here for another shot. To review, share or delete a saved photo, open My Photos and tap its thumbnail.</p>
+      <p class="hint">With iPhone Camera, iOS returns here after Use Photo. For uninterrupted capture choose Continuous Camera. Review saved pictures in My Photos.</p>
     </section>
 
     <section id="view-gallery" class="view" aria-labelledby="gallery-title">
@@ -130,8 +146,8 @@
   <img id="detail-image" alt="Work photo preview"><div id="detail-info"></div>
   <div class="dialog-actions"><button id="share-photo" class="btn btn-primary" type="button">↗ Share</button><button id="export-photo" class="btn btn-secondary" type="button">Download</button><button id="delete-photo" class="btn btn-danger" type="button">Delete</button></div></div>
 </dialog>
-<script src="data/apartments.js?v=3.3.0"></script>
-<script src="local-backup.js?v=3.3.0" defer></script>
-<script src="app.js?v=3.3.0" defer></script>
+<script src="data/apartments.js?v=3.4.0"></script>
+<script src="local-backup.js?v=3.4.0" defer></script>
+<script src="app.js?v=3.4.0" defer></script>
 </body>
 </html>
