@@ -8,22 +8,32 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="Work Camera">
   <meta name="robots" content="noindex,nofollow,noarchive">
-  <meta name="description" content="Work Camera photo sorting prototype for maintenance locations">
+  <meta name="description" content="Offline maintenance camera and private on-device photo library">
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="apple-touch-icon" href="icons/icon-192.png">
   <link rel="stylesheet" href="styles.css">
-  <title>Work Camera — V2 OneDrive-ready</title>
+  <title>Work Camera — Local Photo Library</title>
 </head>
 <body>
 <div id="app" class="shell">
   <header class="header">
     <div class="brand"><div class="brand-icon">📸</div><div><h1>Work Camera</h1><p>GREENBRIER · PHOTO MANAGER</p></div></div>
-    <div class="header-status" id="headerStatus" title="Backup status">LOCAL ONLY</div>
+    <div class="header-status" id="headerStatus" title="Storage mode">ON DEVICE</div>
   </header>
-  <div class="warning" id="backup-warning" role="note"><strong>Cloud backup not connected.</strong> Photos remain only on this device until you connect OneDrive and sync successfully. Do not rely on local-only photos as a permanent backup.</div>
+  <div class="warning" id="backup-warning" role="note"><strong>Photos stay on this iPhone.</strong> They are not uploaded to any cloud. Export a ZIP to your computer regularly: local web-app storage is not a permanent backup.</div>
 
   <main>
-    <section id="view-locations" class="view active" aria-labelledby="locations-title">
+    <section id="view-home" class="view active" aria-labelledby="home-title">
+      <div class="section-heading"><h2 id="home-title">Work Camera</h2><p>Your work photos, separate from Apple Photos.</p></div>
+      <div class="home-grid">
+        <button type="button" class="home-action" id="home-take-photo"><span aria-hidden="true">📸</span><strong>Take Photo</strong><small>Choose building and area</small></button>
+        <button type="button" class="home-action" id="home-my-photos"><span aria-hidden="true">🖼️</span><strong>My Photos</strong><small>Browse work photo folders</small></button>
+      </div>
+      <div class="info-card home-card"><h3>📱 Saved on this device</h3><p id="home-summary">Checking work photos…</p></div>
+      <button type="button" class="btn btn-secondary btn-large" id="home-backup">📦 Weekly backup to computer</button>
+      <p class="hint">No cloud photo upload. Back up your work photos before clearing space or deleting the app.</p>
+    </section>
+    <section id="view-locations" class="view" aria-labelledby="locations-title">
       <div class="section-heading"><h2 id="locations-title">Choose location</h2><p>Pick a destination before opening the camera.</p></div>
       <div class="segment" role="tablist" aria-label="Location group">
         <button type="button" id="mode-buildings" class="active" role="tab" aria-selected="true">Buildings</button>
@@ -67,44 +77,59 @@
     </section>
 
     <section id="view-gallery" class="view" aria-labelledby="gallery-title">
-      <div class="section-heading"><h2 id="gallery-title">Work Gallery</h2><p>Photos saved in this device, with individual OneDrive backup status.</p></div>
+      <div class="section-heading"><h2 id="gallery-title">My Photos</h2><p>Photos saved privately inside Work Camera, organized by location.</p></div>
       <div class="gallery-toolbar"><select id="gallery-filter" aria-label="Filter gallery"><option value="all">All locations</option><option value="current">Current location</option></select><span id="photo-count">0 photos</span></div>
       <div id="gallery-grid" class="gallery-grid"></div>
       <div id="gallery-empty" class="empty"><span>🖼️</span><h3>No photos yet</h3><p>Choose a location, open the camera and take a photo.</p></div>
     </section>
 
     <section id="view-settings" class="view" aria-labelledby="settings-title">
-      <div class="section-heading"><h2 id="settings-title">Storage & sync</h2><p>Independent Work Camera prototype</p></div>
+      <div class="section-heading"><h2 id="settings-title">Weekly Backup</h2><p>Export to your computer, verify, then free iPhone storage.</p></div>
       <div class="info-card">
-        <h3>☁️ OneDrive personal — App Folder</h3>
-        <span class="offline-badge" id="cloud-status">Not connected</span>
-        <p>Use your own Microsoft Entra SPA registration with <code>Files.ReadWrite.AppFolder</code>. The app only requests access to its special OneDrive folder. It never asks for your Microsoft password.</p>
-        <label for="client-id">MICROSOFT APPLICATION (CLIENT) ID</label>
-        <input type="text" id="client-id" placeholder="00000000-0000-0000-0000-000000000000" autocapitalize="off" autocomplete="off" spellcheck="false">
-        <p><strong>Exact registered SPA redirect URI:</strong> <code id="redirect-uri"></code></p>
-        <div class="cloud-actions"><button type="button" class="btn btn-secondary" id="save-client-id">Save app ID</button><button type="button" class="btn btn-primary" id="connect-cloud">Connect OneDrive</button><button type="button" class="btn btn-secondary" id="disconnect-cloud">Disconnect</button></div>
-        <p id="auth-message" role="status"></p>
+        <h3>📱 Local photo storage</h3>
+        <div id="storage-number">Checking photos…</div>
+        <p>Your pictures stay in Work Camera's private local storage, not in Apple Photos or a cloud. iOS may clear web-app data; export important images frequently.</p>
       </div>
-      <div class="info-card"><h3>📤 Cloud sync</h3><div id="sync-summary">Checking local photos…</div><div class="cloud-actions"><button type="button" class="btn btn-primary" id="sync-photos">Sync pending photos</button><button type="button" class="btn btn-secondary" id="delete-verified">Free local space (verified only)</button></div><p id="sync-message" role="status">Upload works only while the app is open and a Microsoft session is connected. Never delete unsynced photos.</p></div>
-      <div class="info-card"><h3>📱 Local storage</h3><div id="storage-number">Checking photos…</div><p>Local browser storage can be cleared by iOS or the browser. Export any photos you want to keep. Only delete after an external backup is verified.</p></div>
-      <div class="info-card"><h3>🔐 Privacy</h3><p>Photos are kept separate from Apple Photos when captured through the in-app camera. Do not photograph residents' private information; follow employer policies before storing workplace photos in a personal cloud account.</p></div>
+      <div class="info-card">
+        <h3>📦 1 · Prepare backup ZIP</h3>
+        <p id="backup-summary">Checking photos needing backup…</p>
+        <p>Exports original files into folders by building, area and apartment. For iPhone reliability, large libraries are divided into batches.</p>
+        <div class="cloud-actions">
+          <button type="button" class="btn btn-primary" id="export-backup">Prepare ZIP</button>
+          <button type="button" class="btn btn-secondary" id="save-backup" disabled>Save / Share ZIP</button>
+        </div>
+        <p id="backup-ready" role="status"></p>
+      </div>
+      <div class="info-card">
+        <h3>✅ 2 · Verify on your computer</h3>
+        <p>Transfer the ZIP to your computer, open it and check that the photos are present. Preparing or sharing a ZIP does <strong>not</strong> prove the backup succeeded.</p>
+        <label class="verify-label"><input type="checkbox" id="backup-checked"> I opened the ZIP on my computer and verified the photos.</label>
+        <div class="cloud-actions"><button type="button" class="btn btn-secondary" id="confirm-backup" disabled>Confirm verified batch</button></div>
+      </div>
+      <div class="info-card">
+        <h3>🧹 3 · Free iPhone space</h3>
+        <p>Only photos from a batch you explicitly confirmed can be removed. Deletion is permanent inside Work Camera.</p>
+        <button type="button" class="btn btn-danger" id="clear-backed-up" disabled>Delete verified local photos</button>
+      </div>
+      <p id="backup-message" class="backup-message" role="status" aria-live="polite"></p>
+      <div class="info-card"><h3>🔐 Privacy & safety</h3><p>No photos are uploaded from Work Camera. Use only approved workplace images and follow your employer's photo policies. Keep a second copy on another drive when possible.</p></div>
     </section>
   </main>
 
   <nav class="bottom-nav" aria-label="Main navigation">
-    <button type="button" class="nav-item active" data-view="locations"><span>⌖</span><small>Locations</small></button>
-    <button type="button" class="nav-item" data-view="camera"><span>📷</span><small>Camera</small></button>
-    <button type="button" class="nav-item" data-view="gallery"><span>▦</span><small>Gallery</small></button>
-    <button type="button" class="nav-item" data-view="settings"><span>⚙</span><small>Storage</small></button>
+    <button type="button" class="nav-item active" data-view="home"><span>⌂</span><small>Home</small></button>
+    <button type="button" class="nav-item" data-view="locations"><span>📷</span><small>Take Photo</small></button>
+    <button type="button" class="nav-item" data-view="gallery"><span>▦</span><small>My Photos</small></button>
+    <button type="button" class="nav-item" data-view="settings"><span>📦</span><small>Backup</small></button>
   </nav>
 </div>
 <dialog id="photo-dialog" aria-label="Photo details">
   <div class="dialog-inner"><div class="dialog-head"><strong>Photo details</strong><button id="close-dialog" type="button" aria-label="Close">✕</button></div>
   <img id="detail-image" alt="Work photo preview"><div id="detail-info"></div>
-  <div class="dialog-actions"><button id="export-photo" class="btn btn-secondary" type="button">Download copy</button><button id="open-cloud-photo" class="btn btn-secondary" type="button">Open OneDrive</button><button id="delete-photo" class="btn btn-danger" type="button">Delete photo</button></div></div>
+  <div class="dialog-actions"><button id="export-photo" class="btn btn-secondary" type="button">Download copy</button><button id="delete-photo" class="btn btn-danger" type="button">Delete photo</button></div></div>
 </dialog>
 <script src="data/apartments.js"></script>
-<script src="onedrive.js" defer></script>
+<script src="local-backup.js" defer></script>
 <script src="app.js" defer></script>
 </body>
 </html>
