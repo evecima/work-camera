@@ -11,8 +11,8 @@
   <meta name="description" content="Offline maintenance camera and private on-device photo library">
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="apple-touch-icon" href="icons/icon-192.png">
-  <link rel="stylesheet" href="styles.css">
-  <title>Work Camera — Local Photo Library</title>
+  <link rel="stylesheet" href="styles.css?v=3.3.0">
+  <title>Work Camera V3.3 — Local Photo Library</title>
 </head>
 <body>
 <div id="app" class="shell">
@@ -31,6 +31,8 @@
       </div>
       <div class="info-card home-card"><h3>📱 Saved on this device</h3><p id="home-summary">Checking work photos…</p></div>
       <button type="button" class="btn btn-secondary btn-large" id="home-backup">📦 Weekly backup to computer</button>
+      <div class="app-update"><span>Running version: <strong id="runtime-version">Loading…</strong></span><button type="button" class="btn btn-secondary" id="refresh-app">↻ Update app</button></div>
+      <p id="update-message" class="app-update-message" role="status" aria-live="polite"></p>
       <p class="hint">No cloud photo upload. Back up your work photos before clearing space or deleting the app.</p>
     </section>
     <section id="view-locations" class="view" aria-labelledby="locations-title">
@@ -128,8 +130,8 @@
   <img id="detail-image" alt="Work photo preview"><div id="detail-info"></div>
   <div class="dialog-actions"><button id="share-photo" class="btn btn-primary" type="button">↗ Share</button><button id="export-photo" class="btn btn-secondary" type="button">Download</button><button id="delete-photo" class="btn btn-danger" type="button">Delete</button></div></div>
 </dialog>
-<script src="data/apartments.js"></script>
-<script src="local-backup.js" defer></script>
-<script src="app.js" defer></script>
+<script src="data/apartments.js?v=3.3.0"></script>
+<script src="local-backup.js?v=3.3.0" defer></script>
+<script src="app.js?v=3.3.0" defer></script>
 </body>
 </html>
