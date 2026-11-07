@@ -14,12 +14,13 @@ No Azure, OneDrive or Apple Developer configuration is required for the local-on
 1. Open the public URL using **Safari** on the iPhone.
 2. Use the Share menu to **Add to Home Screen**. Keep exactly one icon named **Work Camera**.
 3. Open the installed app and check that Home shows **Take Photo** and **My Photos**.
-4. Select a harmless test location and take a test photo with the in-app camera. Check the photo in **My Photos** under that location.
-5. Put the phone into Airplane Mode and reopen the installed app. Test browsing the library and (where permitted) camera capture offline. The browser may need an initial online load for service-worker installation.
-6. In **Weekly Backup** press **Prepare ZIP**, then **Save / Share ZIP**. Choose the local destination explicitly (prefer **On My iPhone** or a local external drive, not iCloud Drive if cloud use is not wanted).
-7. Transfer the ZIP to a computer via AirDrop / network share / compatible external drive, open it and confirm the photo files plus `manifest.json` exist.
-8. Only after verification, check the confirmation checkbox and press **Confirm verified batch**.
-9. For test photos only, verify that **Delete verified local photos** requires an explicit `DELETE` typed confirmation. Do not clear real photos until backed up.
+4. Select a harmless test location and tap **Take Photo**. The iPhone should open its system camera capture UI. Accept a test photo; confirm **Photo details** opens with **Share**, **Download**, **Delete**, and that the photo appears in **My Photos** under the correct location.
+5. Tap **Share**, select a trusted target such as your own Messages, Mail or AirDrop, and confirm the file can be sent without saving it to Apple Photos. If unsupported, use **Download**. Test **Import from Photos** separately with a harmless image taken in Apple's full Camera app (the original remains in the Photos library).
+6. Put the phone into Airplane Mode and reopen the installed app. Test browsing the library and (where permitted) camera capture offline. The browser may need an initial online load for service-worker installation.
+7. In **Weekly Backup** press **Prepare ZIP**, then **Save / Share ZIP**. Choose the local destination explicitly (prefer **On My iPhone** or a local external drive, not iCloud Drive if cloud use is not wanted).
+8. Transfer the ZIP to a computer via AirDrop / network share / compatible external drive, open it and confirm the photo files plus `manifest.json` exist.
+9. Only after verification, check the confirmation checkbox and press **Confirm verified batch**.
+10. For test photos only, verify that **Delete verified local photos** requires an explicit `DELETE` typed confirmation. Do not clear real photos until backed up.
 
 **Critical**: this is an iOS PWA. IndexedDB can be evicted or deleted; transferring pictures weekly reduces but does not eliminate loss risk between exports. Export critical photos promptly. An installed PWA can use storage separate from Safari, so inspect existing devices/app icons before replacing one.
 
