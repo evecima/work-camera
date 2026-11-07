@@ -13,9 +13,9 @@ jobs:
       - name: Verify JS syntax
         run: |
           node --check app.js
-          node --check onedrive.js
+          node --check local-backup.js
           node --check service-worker.js
-      - name: Validate catalog and OneDrive logic
+      - name: Validate catalog and local backup ZIP
         run: |
           node tests/catalog-smoke.cjs
-          node tests/onedrive-smoke.cjs
+          node tests/local-backup-smoke.cjs
