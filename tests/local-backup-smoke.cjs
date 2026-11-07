@@ -54,6 +54,18 @@ async function test(){
   assert(!captureSave.includes('showDetails('),'Saving a capture must not automatically open Photo Details');
   assert(app.includes("tile.addEventListener('click',()=>showDetails(p))"),'Tapping a gallery photo should still open Photo Details');
   assert(html.includes('open My Photos and tap its thumbnail'),'User instructions must match the new interaction');
-  console.log('PASS: ZIP CRC, folders, local-only app, native capture and photo sharing');
+  assert(html.includes('id="runtime-version"')&&html.includes('id="refresh-app"'),'In-app version and update control must be visible');
+  for(const script of ['app.js','local-backup.js','data/apartments.js'])
+    assert(html.includes(script+'?v=3.3.0'),'Versioned JS needed: '+script);
+  assert(html.includes('styles.css?v=3.3.0'),'Versioned CSS required');
+  assert(app.includes("const APP_VERSION='3.3.0'"),'Runtime build must identify the executable JS version');
+  assert(app.includes("window.location.replace(address.href)"),'Refresh should navigate without changing storage');
+  assert(!app.includes('indexedDB.deleteDatabase('),'Updating must never delete the photo database');
+  const worker=fs.readFileSync(path.join(__dirname,'../service-worker.js'),'utf8');
+  assert(worker.includes("work-camera-shell-v3.3.0"),'New SW version required');
+  assert(worker.includes("fetch(event.request,{cache:'no-store'})"),'Online fetch must bypass HTTP cache');
+  assert(worker.includes("cache.match('./index.html')"),'Offline fallback must remain available');
+  assert(!worker.includes('indexedDB'),'SW must not modify photos');
+  console.log('PASS: ZIP, catalog, native capture, photo details on tap and safe PWA update path');
 }
 test().catch(e=>{console.error(e);process.exitCode=1;});
