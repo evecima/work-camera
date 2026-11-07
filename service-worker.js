@@ -1,5 +1,5 @@
 /* Offline shell only: photos always remain in IndexedDB, never in a network cache. */
-const CACHE_NAME='work-camera-shell-v3';
+const CACHE_NAME='work-camera-shell-v3.1';
 const OWN_CACHE_PREFIX='work-camera-shell-';
 const APP_ASSETS=['./','./index.html','./styles.css','./app.js','./local-backup.js','./manifest.webmanifest','./data/apartments.js','./icons/icon-192.png','./icons/icon-512.png'];
 self.addEventListener('install',event=>{
