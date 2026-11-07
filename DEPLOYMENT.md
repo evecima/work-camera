@@ -1,4 +1,4 @@
-# Work Camera V3.3 — Deploy and iPhone acceptance checklist
+# Work Camera V3.4 — Deploy and iPhone acceptance checklist
 
 ## Deployment
 
@@ -13,8 +13,8 @@ No Azure, OneDrive or Apple Developer configuration is required for the local-on
 
 1. Open the public URL using **Safari** on the iPhone.
 2. Use the Share menu to **Add to Home Screen**. Keep exactly one icon named **Work Camera**.
-3. Open the installed app and check that Home shows **Take Photo** and **My Photos** and **Running version: V3.3.0**. If it does not, keep your photographs and troubleshoot the stale application cache without uninstalling.
-4. Select a harmless test location and tap **Take Photo**. The iPhone should open its system camera capture UI. Accept a test photo; verify the camera screen stays visible with a saved message. Only after opening **My Photos** and tapping that photo should **Photo Details** show Share, Download and Delete.
+3. Open the installed app and check that Home shows **Take Photo** and **My Photos** and **Running version: V3.4.0**. If it does not, keep your photographs and troubleshoot the stale application cache without uninstalling.
+4. Choose a harmless test location and tap **iPhone Camera · One photo**. Capture and accept a photo; verify you return to Work Camera's capture page with a saved message. Only after opening **My Photos** and tapping a thumbnail should Photo Details show Share, Download and Delete. Then return to the same location and choose **Continuous Camera · Several photos**, grant camera permission if prompted, tap the shutter three times and confirm the live viewfinder stays open while the saved counter increases. Close continuous mode and verify the three shots are present in My Photos. Quality and advanced native controls vary; continuous mode uses a browser video stream, not Apple's full Camera app.
 5. Tap **Share**, select a trusted target such as your own Messages, Mail or AirDrop, and confirm the file can be sent without saving it to Apple Photos. If unsupported, use **Download**. Test **Import from Photos** separately with a harmless image taken in Apple's full Camera app (the original remains in the Photos library).
 6. Put the phone into Airplane Mode and reopen the installed app. Test browsing the library and (where permitted) camera capture offline. The browser may need an initial online load for service-worker installation.
 7. In **Weekly Backup** press **Prepare ZIP**, then **Save / Share ZIP**. Choose the local destination explicitly (prefer **On My iPhone** or a local external drive, not iCloud Drive if cloud use is not wanted).
