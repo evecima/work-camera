@@ -3,7 +3,7 @@
  */
 (() => {
   'use strict';
-  const APP_VERSION='3.3.0';
+  const APP_VERSION='3.4.0';
   const apartments = Array.isArray(window.WC_APARTMENTS) ? window.WC_APARTMENTS : [];
   const residential = [...new Set(apartments.map(x => String(x.building)))].sort((a,b)=>Number(a)-Number(b));
   const boilers = new Set(['3514','3515','3544','3545','3570','3595','3615','3645','3685','3715','3720','3735','3770','3775','3825','3845']);
@@ -36,6 +36,7 @@
     confirmed:!!previous.confirmed
   };
   let currentView='home'; let databasePromise=null; let urls=[]; let detailURL=null; let selectedPhoto=null;
+  let cameraMode='native',continuousStream=null,continuousOpening=0,continuousShooting=false,continuousCount=0;
   let preparedExport=null, preparingExport=false, savingExport=false;
   const MAX_BATCH_BYTES=70*1024*1024, MAX_BATCH_PHOTOS=80;
   function validState(){
@@ -109,7 +110,75 @@
     try{
       const photo=await addPhoto(blob,filename);
       notify('✓ Photo saved: '+photo.location.path+'. Take another photo or open My Photos to review it.');
-    }catch(e){notify('Could not save photo: '+e.message,true);}
+      return photo;
+    }catch(e){notify('Could not save photo: '+e.message,true);return null;}
+  }
+  function stopContinuousCamera(){
+    continuousOpening++;
+    if(continuousStream){continuousStream.getTracks().forEach(track=>track.stop());continuousStream=null;}
+    const video=$('continuous-video');video.pause();video.srcObject=null;
+    cameraMode='native';
+    $('native-camera-panel').classList.remove('hide');
+    $('continuous-camera-panel').classList.add('hide');
+    $('continuous-shutter').disabled=true;
+  }
+  async function startContinuousCamera(){
+    if(cameraMode==='continuous'&&(continuousStream||$('continuous-loading').textContent==='Starting camera…'))return;
+    stopContinuousCamera();
+    cameraMode='continuous';
+    const token=++continuousOpening;
+    continuousCount=0;
+    $('continuous-count').textContent='0 saved';
+    $('native-camera-panel').classList.add('hide');
+    $('continuous-camera-panel').classList.remove('hide');
+    $('continuous-loading').classList.remove('hide');
+    $('continuous-loading').textContent='Starting camera…';
+    $('continuous-shutter').disabled=true;
+    notify('');
+    try{
+      if(!navigator.mediaDevices?.getUserMedia)throw new Error('Camera preview not available in this browser.');
+      const live=await navigator.mediaDevices.getUserMedia({
+        video:{facingMode:{ideal:'environment'},width:{ideal:1920},height:{ideal:1080}},
+        audio:false
+      });
+      if(token!==continuousOpening||currentView!=='camera'||cameraMode!=='continuous'){
+        live.getTracks().forEach(track=>track.stop());return;
+      }
+      continuousStream=live;
+      const video=$('continuous-video');video.srcObject=live;
+      await video.play();
+      if(token!==continuousOpening||cameraMode!=='continuous'){stopContinuousCamera();return;}
+      $('continuous-loading').classList.add('hide');
+      $('continuous-shutter').disabled=false;
+    }catch(error){
+      if(token!==continuousOpening)return;
+      stopContinuousCamera();
+      notify('Continuous Camera unavailable: '+(error?.message||'Check camera permission')+'. Use iPhone Camera instead.',true);
+    }
+  }
+  async function captureContinuousPhoto(){
+    if(continuousShooting||!continuousStream||cameraMode!=='continuous')return;
+    const video=$('continuous-video');
+    if(!video.videoWidth||!video.videoHeight){notify('Live camera not ready. Try again.',true);return;}
+    continuousShooting=true;$('continuous-shutter').disabled=true;
+    try{
+      const canvas=$('continuous-canvas');
+      const scale=Math.min(1,2400/Math.max(video.videoWidth,video.videoHeight));
+      canvas.width=Math.round(video.videoWidth*scale);
+      canvas.height=Math.round(video.videoHeight*scale);
+      const ctx=canvas.getContext('2d');
+      if(!ctx)throw new Error('Camera image buffer unavailable.');
+      ctx.drawImage(video,0,0,canvas.width,canvas.height);
+      const blob=await new Promise(resolve=>canvas.toBlob(resolve,'image/jpeg',0.9));
+      if(!blob)throw new Error('Could not encode the image.');
+      const filename='WC_'+new Date().toISOString().replace(/[.:]/g,'-')+'.jpg';
+      const saved=await saveBlob(blob,filename);
+      if(saved){continuousCount++;$('continuous-count').textContent=continuousCount+' saved';}
+    }catch(error){notify('Could not capture: '+(error?.message||error),true);}
+    finally{
+      continuousShooting=false;
+      $('continuous-shutter').disabled=!(continuousStream&&cameraMode==='continuous'&&currentView==='camera');
+    }
   }
   function releaseUrls(){urls.forEach(u=>URL.revokeObjectURL(u));urls=[];}
   async function renderGallery(){
@@ -299,6 +368,7 @@
   }
   async function setView(view){
     if(view==='camera'&&!state.confirmed){view='locations';$('open-camera').focus();}
+    if(currentView==='camera'&&view!=='camera')stopContinuousCamera();
     currentView=view;document.querySelectorAll('.view').forEach(x=>x.classList.toggle('active',x.id==='view-'+view));document.querySelectorAll('.nav-item').forEach(x=>x.classList.toggle('active',x.dataset.view===view));
     if(view==='camera')updatePath();if(view==='gallery')await renderGallery();else releaseUrls();if(view==='settings')await renderSettings();if(view==='home')await renderHome();
   }
@@ -309,9 +379,15 @@
     $('building').addEventListener('change',e=>{state.building=e.target.value;state.area=state.building==='3615'?'office':'apartment';state.unit='';markChanged();renderAreas();});
     $('unit').addEventListener('change',e=>{state.unit=e.target.value;markChanged();});
     ['buildings','facilities'].forEach(g=>$('mode-'+g).addEventListener('click',()=>{state.group=g;markChanged();renderGroup();}));
-    $('open-camera').addEventListener('click',()=>{state.confirmed=true;persist();void setView('camera');notify('');$('file-camera').click();});
+    $('open-camera').addEventListener('click',()=>{state.confirmed=true;persist();void setView('camera');stopContinuousCamera();notify('');$('file-camera').click();});
+    $('open-continuous').addEventListener('click',()=>{state.confirmed=true;persist();void setView('camera');void startContinuousCamera();});
     $('change-location').addEventListener('click',()=>setView('locations'));
     $('camera-view-gallery').addEventListener('click',()=>setView('gallery'));
+    $('camera-start-continuous').addEventListener('click',()=>void startContinuousCamera());
+    $('continuous-close').addEventListener('click',()=>{stopContinuousCamera();notify('Continuous camera closed.');});
+    $('continuous-shutter').addEventListener('click',()=>void captureContinuousPhoto());
+    document.addEventListener('visibilitychange',()=>{if(document.hidden&&cameraMode==='continuous')stopContinuousCamera();});
+    window.addEventListener('pagehide',stopContinuousCamera);
     $('file-camera').addEventListener('change',async e=>{const file=e.target.files?.[0];e.target.value='';if(file)await saveBlob(file,file.name);});
     $('file-import').addEventListener('change',async e=>{const file=e.target.files?.[0];e.target.value='';if(file)await saveBlob(file,file.name);});
     for(const b of buildingIds)$('gallery-filter').append(option('building:'+b,b==='3615'?'3615 · Leasing Office':'Building '+b));
