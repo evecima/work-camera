@@ -13,7 +13,8 @@ async function test(){
     {id:'photo2',createdAt:Date.parse('2026-11-06T20:01:00Z'),filename:'kitchen.jpg',blob:new Blob(['kitchen image'],{type:'image/jpeg'}),location:{group:'buildings',building:'3520',area:'apartment',unit:'101',path:'Building 3520 / Apartment / Apt 101'}},
     {id:'photo3',createdAt:Date.parse('2026-11-06T20:02:00Z'),filename:'school.jpg',blob:new Blob(['school image'],{type:'image/jpeg'}),location:{group:'facilities',facility:'school',path:'3613 - Montessori School'}}
   ];
-  const zip=Buffer.from(await backup.makeZip(photos));
+  const archive=await backup.makeZip(photos);
+  const zip=Buffer.from(await archive.arrayBuffer());
   const entries=[];
   let pointer=0;
   while(zip.readUInt32LE(pointer)===0x04034B50){
