@@ -39,7 +39,7 @@ label:not(.file-button){display:block;color:#a9bad0;font-size:11px;font-weight:8
 .native-camera-icon{font-size:54px;line-height:1.2}
 .native-camera-panel h3{font-size:20px;margin:2px 0 0}
 .native-camera-panel p{margin:0;color:var(--muted);font-size:13px;line-height:1.6}
-.native-camera-panel label.native-camera-label{display:flex;justify-content:center;align-items:center;margin:4px 0 0;font-size:16px;letter-spacing:normal;cursor:pointer;white-space:normal;min-height:55px;text-align:center}
+.native-camera-panel label.native-camera-label{display:flex;justify-content:center;align-items:center;margin:4px 0 0;font-size:16px;letter-spacing:normal;cursor:pointer;white-space:normal;min-height:55px;text-align:center;color:#fff}
 .native-camera-panel label.native-camera-label:focus-visible{outline:3px solid #b5dcff;outline-offset:3px}
 .native-camera-panel .native-camera-note{font-size:11px;margin-top:4px;text-align:left;color:#adc5df}
 #camera-view-gallery{white-space:normal}
