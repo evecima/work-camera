@@ -49,6 +49,11 @@ async function test(){
   assert(app.includes("navigator.share({files:[file]"),'Share button must invoke native file share');
   assert(app.includes("$('file-camera').click()"),'Location confirmation should launch system capture immediately');
   assert(!app.includes('getUserMedia'),'No automatic custom camera stream');
+  const captureSave = app.slice(app.indexOf('async function saveBlob('),app.indexOf('function releaseUrls('));
+  assert(captureSave.includes('await addPhoto(blob,filename)'),'Accepted capture must be saved');
+  assert(!captureSave.includes('showDetails('),'Saving a capture must not automatically open Photo Details');
+  assert(app.includes("tile.addEventListener('click',()=>showDetails(p))"),'Tapping a gallery photo should still open Photo Details');
+  assert(html.includes('open My Photos and tap its thumbnail'),'User instructions must match the new interaction');
   console.log('PASS: ZIP CRC, folders, local-only app, native capture and photo sharing');
 }
 test().catch(e=>{console.error(e);process.exitCode=1;});
