@@ -107,8 +107,7 @@
     if(!blob.type.startsWith('image/')&&!/\.(jpe?g|png|heic|heif|webp|avif|gif)$/i.test(filename||'')){notify('Select a photo file, not another document.',true);return;}
     try{
       const photo=await addPhoto(blob,filename);
-      notify('✓ Saved privately on this device: '+photo.location.path);
-      showDetails(photo);
+      notify('✓ Photo saved: '+photo.location.path+'. Take another photo or open My Photos to review it.');
     }catch(e){notify('Could not save photo: '+e.message,true);}
   }
   function releaseUrls(){urls.forEach(u=>URL.revokeObjectURL(u));urls=[];}
