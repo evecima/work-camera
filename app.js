@@ -104,7 +104,7 @@
   function notify(message,isError=false){$('camera-message').textContent=message;$('camera-message').classList.toggle('error',isError);}
   async function saveBlob(blob,filename){
     if(!blob||!blob.size){notify('Empty image: nothing saved.',true);return;}
-    if(!blob.type.startsWith('image/')){notify('Select a photo file, not another document.',true);return;}
+    if(!blob.type.startsWith('image/')&&!/\.(jpe?g|png|heic|heif|webp|avif|gif)$/i.test(filename||'')){notify('Select a photo file, not another document.',true);return;}
     try{
       const photo=await addPhoto(blob,filename);
       notify('✓ Saved privately on this device: '+photo.location.path);
@@ -142,7 +142,7 @@
     if(!selectedPhoto?.blob)return;
     const photo=selectedPhoto;
     const name=photo.filename||'work-photo.jpg';
-    const mime=photo.blob.type||photo.mime||'image/jpeg';
+    const mime=photo.blob.type||(/\.heic$/i.test(name)?'image/heic':/\.heif$/i.test(name)?'image/heif':photo.mime||'image/jpeg');
     const file=new File([photo.blob],name,{type:mime});
     if(typeof navigator.share!=='function'||typeof navigator.canShare!=='function'||!navigator.canShare({files:[file]})){
       alert('This browser cannot share this image directly. Use Download, then share it from Files.');
