@@ -1,5 +1,5 @@
-/* Work Camera V2 — independent PWA, opt-in OneDrive App Folder sync.
- * Photo blobs stay in IndexedDB until explicitly cleared after verified backup.
+/* Work Camera V3 — offline-first private photo library.
+ * IndexedDB schema and existing images are preserved; backups require explicit computer verification.
  */
 (() => {
   'use strict';
@@ -34,8 +34,9 @@
     facility:facilities.some(f=>f.id===previous.facility)?previous.facility:'pool',
     confirmed:!!previous.confirmed
   };
-  let currentView='locations'; let stream=null; let databasePromise=null; let urls=[]; let detailURL=null; let selectedPhoto=null;
-  const cloud=window.WC_ONEDRIVE; let syncRunning=false;
+  let currentView='home'; let stream=null; let databasePromise=null; let urls=[]; let detailURL=null; let selectedPhoto=null;
+  let preparedExport=null, preparingExport=false, savingExport=false;
+  const MAX_BATCH_BYTES=70*1024*1024, MAX_BATCH_PHOTOS=80;
   function validState(){
     const areas=allowedAreas(state.building); if(!areas.includes(state.area))state.area=areas[0];
     const units=uniqueUnits(state.building); if(state.area==='apartment'&&!units.some(x=>x.unit===state.unit))state.unit=units[0]?.unit||'';
@@ -98,11 +99,12 @@
   }
   async function listPhotos(){const db=await openDb();return new Promise((resolve,reject)=>{const tx=db.transaction('photos','readonly');const r=tx.objectStore('photos').getAll();r.onsuccess=()=>resolve(r.result.sort((a,b)=>b.createdAt-a.createdAt));r.onerror=()=>reject(r.error);});}
   async function updatePhoto(photo){const db=await openDb();await new Promise((resolve,reject)=>{const tx=db.transaction('photos','readwrite');tx.objectStore('photos').put(photo);tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error);});}
+  async function getPhoto(id){const db=await openDb();return new Promise((resolve,reject)=>{const tx=db.transaction('photos','readonly');const req=tx.objectStore('photos').get(id);req.onsuccess=()=>resolve(req.result||null);req.onerror=()=>reject(req.error);});}
   async function deletePhoto(id){const db=await openDb();await new Promise((resolve,reject)=>{const tx=db.transaction('photos','readwrite');tx.objectStore('photos').delete(id);tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error);});}
   function notify(message,isError=false){$('camera-message').textContent=message;$('camera-message').classList.toggle('error',isError);}
   async function saveBlob(blob,filename){
     if(!blob||!blob.size){notify('Empty image: nothing saved.',true);return;}
-    try{const photo=await addPhoto(blob,filename);notify('✓ Saved locally: '+photo.location.path+(cloud?.connected()?' · Cloud upload queued':' · Cloud not connected'));if(cloud?.connected())void syncPhotos();}catch(e){notify('Could not save photo: '+e.message,true);}
+    try{const photo=await addPhoto(blob,filename);notify('✓ Saved privately on this device: '+photo.location.path);}catch(e){notify('Could not save photo: '+e.message,true);}
   }
   async function startCamera(){
     stopCamera();notify('');
@@ -126,87 +128,155 @@
   async function renderGallery(){
     releaseUrls();$('gallery-grid').replaceChildren();
     try{
-      let photos=await listPhotos();if($('gallery-filter').value==='current')photos=photos.filter(p=>p.location.key===locationKey());
+      let photos=await listPhotos();const filter=$('gallery-filter').value;
+      if(filter==='current')photos=photos.filter(p=>p.location.key===locationKey());
+      else if(filter.startsWith('building:'))photos=photos.filter(p=>p.location.group==='buildings'&&p.location.building===filter.slice(9));
+      else if(filter.startsWith('facility:'))photos=photos.filter(p=>p.location.group==='facilities'&&p.location.facility===filter.slice(9));
+      photos.sort((a,b)=>(a.location.path||'').localeCompare(b.location.path||'')||b.createdAt-a.createdAt);
+      let lastGroup='';
       $('photo-count').textContent=photos.length+' photo'+(photos.length===1?'':'s');$('gallery-empty').classList.toggle('hide',photos.length>0);
       for(const p of photos){
+        if(p.location.path!==lastGroup){const heading=document.createElement('h3');heading.className='gallery-group-title';heading.textContent='📁 '+p.location.path;$('gallery-grid').append(heading);lastGroup=p.location.path;}
         const url=p.blob?URL.createObjectURL(p.blob):null;if(url)urls.push(url);
         const tile=document.createElement('button');tile.type='button';tile.className='photo-tile';
-        const img=document.createElement(p.blob?'img':'div');if(url){img.src=url;img.alt='Work photo';img.loading='lazy';}else{img.className='cloud-thumbnail';img.textContent='☁️ Cloud copy';}
+        const img=document.createElement(p.blob?'img':'div');if(url){img.src=url;img.alt='Work photo';img.loading='lazy';}else{img.className='cloud-thumbnail';img.textContent='Old cloud-only entry';}
         const caption=document.createElement('div');caption.className='tile-caption';
         const title=document.createElement('strong');title.textContent=p.location.path;
         const date=document.createElement('small');date.textContent=new Date(p.createdAt).toLocaleString();
-        const status=document.createElement('div');status.className='tile-badge'+(p.status==='verified'?' verified':'');status.textContent=p.status==='verified'?(p.blob?'✓ OneDrive verified':'☁️ Cloud only'):'● Local only — not backed up';
+        const status=document.createElement('div');status.className='tile-badge'+(p.backupVerifiedAt?' verified':'');status.textContent=!p.blob?'No local image (legacy record)':p.backupVerifiedAt?'✓ Computer backup confirmed':p.backupBatchId?'● Exported · check on computer':'● On this device only';
         caption.append(title,date);tile.append(img,caption,status);tile.addEventListener('click',()=>showDetails(p));$('gallery-grid').append(tile);
       }
     }catch(e){$('gallery-empty').classList.remove('hide');$('gallery-empty').querySelector('p').textContent='Could not read local photos: '+e.message;}
   }
-  function showDetails(photo){selectedPhoto=photo;if(detailURL)URL.revokeObjectURL(detailURL);detailURL=photo.blob?URL.createObjectURL(photo.blob):null;$('detail-image').classList.toggle('hide',!detailURL);if(detailURL)$('detail-image').src=detailURL;else $('detail-image').removeAttribute('src');$('export-photo').disabled=!photo.blob;$('open-cloud-photo').disabled=!photo.cloud?.webUrl;$('detail-info').textContent=`${photo.location.path} · ${new Date(photo.createdAt).toLocaleString()} · ${(photo.size/1024/1024).toFixed(2)} MB · ${photo.status==='verified'?'OneDrive metadata verified':'Local only — NOT backed up'}`;$('photo-dialog').showModal();}
+  function showDetails(photo){selectedPhoto=photo;if(detailURL)URL.revokeObjectURL(detailURL);detailURL=photo.blob?URL.createObjectURL(photo.blob):null;$('detail-image').classList.toggle('hide',!detailURL);if(detailURL)$('detail-image').src=detailURL;else $('detail-image').removeAttribute('src');$('export-photo').disabled=!photo.blob;$('detail-info').textContent=photo.location.path+' · '+new Date(photo.createdAt).toLocaleString()+' · '+((photo.size||0)/1024/1024).toFixed(2)+' MB · '+(!photo.blob?'No local photo (legacy entry)':photo.backupVerifiedAt?'Computer backup confirmed':'NOT verified on computer');$('photo-dialog').showModal();}
   function closeDialog(){$('photo-dialog').close();if(detailURL)URL.revokeObjectURL(detailURL);detailURL=null;selectedPhoto=null;}
   function exportSelected(){if(!selectedPhoto?.blob)return;const a=document.createElement('a');const url=URL.createObjectURL(selectedPhoto.blob);a.href=url;a.download=selectedPhoto.filename||'work-photo.jpg';document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),2000);}
-  async function removeSelected(){if(!selectedPhoto)return;const reason=selectedPhoto.status==='verified'?'This removes the local photo/gallery entry. Your OneDrive file will NOT be deleted. Continue?':'WARNING: This photo has NOT been verified in OneDrive. Deleting it may destroy the only copy. Delete permanently?';if(!confirm(reason))return;const id=selectedPhoto.id;try{await deletePhoto(id);closeDialog();renderGallery();}catch(e){alert('Delete failed: '+e.message);}}
-  function authMessage(message){$('auth-message').textContent=message;}
-  function syncMessage(message){$('sync-message').textContent=message;}
-  async function renderCloud(){
-    $('client-id').value=cloud?.getClientId()||'';
-    $('redirect-uri').textContent=location.origin+location.pathname;
-    const linked=!!cloud?.connected();
-    $('cloud-status').textContent=linked?'Connected for this session':'Not connected';
-    $('headerStatus').textContent=linked?'ONEDRIVE READY':'LOCAL ONLY';
-    $('headerStatus').classList.toggle('synced',linked);
-    $('backup-warning').classList.toggle('hide',linked);
-    $('sync-photos').disabled=!linked||syncRunning;
-    $('disconnect-cloud').disabled=!linked;
-    try{
-      const all=await listPhotos();const local=all.filter(p=>p.status!=='verified'&&p.blob);
-      const verified=all.filter(p=>p.status==='verified').length;
-      const localCount=all.filter(p=>p.blob).length;
-      $('sync-summary').textContent=`${local.length} pending · ${verified} cloud-verified · ${localCount} local photos · ${all.length-localCount} cloud-only entries`;
-      $('delete-verified').disabled=!all.some(p=>p.blob&&p.status==='verified'&&p.cloud?.driveItemId&&Number(p.cloud.size)===p.size)||syncRunning;
-      $('backup-warning').classList.toggle('hide',local.length===0&&verified>0);
-    }catch(e){$('sync-summary').textContent='Local data unavailable: '+e.message;}
+  async function removeSelected(){if(!selectedPhoto)return;const reason=selectedPhoto.backupVerifiedAt?'This photo has a manually confirmed computer backup. Delete the local photo permanently?':'WARNING: This photo has NOT been confirmed on a computer. You may destroy its only copy. Delete permanently?';if(!confirm(reason))return;const id=selectedPhoto.id;try{await deletePhoto(id);closeDialog();renderGallery();}catch(e){alert('Delete failed: '+e.message);}}
+
+  function localImages(all){return all.filter(p=>p.blob&&p.blob.size>0);}
+  function pendingBatch(all){
+    const pending=localImages(all).filter(p=>p.backupBatchId&&!p.backupVerifiedAt).sort((a,b)=>(a.backupExportedAt||0)-(b.backupExportedAt||0));
+    return pending.length?pending.filter(p=>p.backupBatchId===pending[0].backupBatchId):[];
   }
-  async function syncPhotos(){
-    if(syncRunning||!cloud?.connected())return;
-    if(!navigator.onLine){syncMessage('Offline: photos remain pending in this device.');return;}
-    syncRunning=true;await renderCloud();
-    let sent=0,failed=0;
-    try{
-      const pending=(await listPhotos()).filter(x=>x.status!=='verified'&&x.blob).sort((a,b)=>a.createdAt-b.createdAt);
-      for(const p of pending){
-        if(!cloud.connected()){syncMessage('Session expired. Reconnect OneDrive to continue.');break;}
-        syncMessage(`Uploading ${sent+failed+1} of ${pending.length}: ${p.location.path}`);
-        try{
-          const receipt=await cloud.upload(p);
-          p.status='verified';p.cloud=receipt;delete p.lastError;
-          await updatePhoto(p);sent++;
-        }catch(e){failed++;p.status='local-only';p.lastError=String(e.message||e);await updatePhoto(p);
-          syncMessage(`Upload stopped: ${p.lastError}. Photos remain stored locally.`);
-          break; // avoid repeated failures/rate limiting; user can retry
-        }
-      }
-      if(!failed)syncMessage(`Sync finished: ${sent} newly verified photo(s). Local copies retained.`);
-    }catch(e){syncMessage('Sync failed: '+e.message+' (local photos retained).');}
-    finally{syncRunning=false;await renderCloud();if(currentView==='gallery')await renderGallery();}
+  function chooseBatch(all){
+    const unfinished=pendingBatch(all);
+    if(unfinished.length)return unfinished.sort((a,b)=>a.createdAt-b.createdAt);
+    const outstanding=localImages(all).filter(p=>!p.backupVerifiedAt&&!p.backupBatchId).sort((a,b)=>a.createdAt-b.createdAt);
+    let bytes=0;const batch=[];
+    for(const p of outstanding){
+      if(batch.length&&(batch.length>=MAX_BATCH_PHOTOS||bytes+p.blob.size>MAX_BATCH_BYTES))break;
+      batch.push(p);bytes+=p.blob.size;
+    }
+    return batch;
   }
-  async function deleteVerifiedLocal(){
-    if(syncRunning)return;
-    const verified=(await listPhotos()).filter(p=>p.blob&&p.status==='verified'&&p.cloud?.driveItemId&&Number(p.cloud.size)===p.size);
-    if(!verified.length)return;
-    if(!confirm(`Remove ${verified.length} locally stored photo(s) that have OneDrive metadata verification? This removes the local copy and depends on the cloud copy remaining available.`))return;
-    for(const p of verified){p.blob=null;p.localPurged=true;await updatePhoto(p);}
-    syncMessage(`Freed ${verified.length} verified local image(s). Gallery entries and cloud files retained.`);
-    await renderCloud();
+  function backupMessage(value,error=false){$('backup-message').textContent=value;$('backup-message').classList.toggle('error',error);}
+  function updateConfirmButton(){
+    $('confirm-backup').disabled=!$('backup-checked').checked||$('confirm-backup').dataset.available!=='true';
+  }
+  async function renderHome(){
+    try{const all=localImages(await listPhotos());const pending=all.filter(p=>!p.backupVerifiedAt).length;
+      $('home-summary').textContent=all.length+' photo(s) on this iPhone · '+pending+' awaiting confirmed computer backup.';
+    }catch(e){$('home-summary').textContent='Cannot read local photo library: '+e.message;}
   }
   async function renderSettings(){
-    try{const all=await listPhotos();const bytes=all.reduce((n,p)=>n+(p.blob?.size||0),0);$('storage-number').textContent=`${all.length} photos · ${(bytes/1024/1024).toFixed(1)} MB stored locally`;}catch(e){$('storage-number').textContent='Storage unavailable: '+e.message;}
-    await renderCloud();
+    try{
+      const all=await listPhotos(),local=localImages(all),pending=pendingBatch(all);
+      const bytes=local.reduce((sum,p)=>sum+p.blob.size,0);
+      const confirmed=local.filter(p=>p.backupVerifiedAt);
+      const newPhotos=local.filter(p=>!p.backupVerifiedAt&&!p.backupBatchId);
+      $('storage-number').textContent=local.length+' photos · '+(bytes/1024/1024).toFixed(1)+' MB on this device';
+      $('backup-summary').textContent=newPhotos.length+' new photo(s) need export.\n'+pending.length+' photo(s) exported but NOT confirmed.\n'+confirmed.length+' photo(s) manually confirmed on computer.';
+      $('export-backup').disabled=preparingExport||savingExport||!chooseBatch(all).length;
+      $('export-backup').textContent=preparingExport?'Preparing…':pending.length?'Prepare current batch again':'Prepare ZIP';
+      $('save-backup').disabled=!preparedExport||savingExport;
+      $('confirm-backup').dataset.available=pending.length?'true':'false';
+      updateConfirmButton();
+      $('clear-backed-up').disabled=!confirmed.length||preparingExport||savingExport;
+      if(!preparedExport)$('backup-ready').textContent=pending.length
+        ? 'An exported batch is waiting for computer verification. Re-export it if needed.'
+        : 'Prepare a ZIP, then tap Save / Share ZIP.';
+    }catch(e){backupMessage('Could not read storage: '+e.message,true);}
   }
-
+  async function prepareBackup(){
+    if(preparingExport||savingExport)return;
+    preparingExport=true;preparedExport=null;$('backup-ready').textContent='Preparing archive…';
+    await renderSettings();
+    try{
+      const photos=chooseBatch(await listPhotos());
+      if(!photos.length){backupMessage('No unverified local photos to export.');return;}
+      if(!window.WC_BACKUP)throw new Error('Offline backup module unavailable.');
+      const batchId=photos[0].backupBatchId||('wc-'+Date.now().toString(36)+'-'+Math.random().toString(36).slice(2,8));
+      const blob=await window.WC_BACKUP.makeZip(photos);
+      const fileName='Work_Camera_'+new Date().toISOString().slice(0,10)+'_'+batchId+'.zip';
+      preparedExport={photos,blob,fileName,batchId};
+      $('backup-ready').textContent='ZIP ready: '+photos.length+' photo(s) · '+(blob.size/1024/1024).toFixed(1)+' MB.\nTap Save / Share ZIP, then transfer it to your computer.';
+      backupMessage('The ZIP is only prepared in memory; it has NOT yet been saved or verified.');
+    }catch(e){backupMessage('Could not prepare ZIP: '+e.message,true);}
+    finally{preparingExport=false;await renderSettings();}
+  }
+  function downloadZip(blob,fileName){
+    const url=URL.createObjectURL(blob);const link=document.createElement('a');
+    link.href=url;link.download=fileName;document.body.append(link);link.click();link.remove();
+    setTimeout(()=>URL.revokeObjectURL(url),60000);
+  }
+  async function savePreparedBackup(){
+    if(!preparedExport||savingExport)return;
+    savingExport=true;const archive=preparedExport;let dispatched=false;
+    try{
+      const file=new File([archive.blob],archive.fileName,{type:'application/zip'});
+      if(navigator.share&&navigator.canShare&&navigator.canShare({files:[file]})){
+        try{await navigator.share({files:[file],title:'Work Camera photo archive'});dispatched=true;}
+        catch(e){if(e.name==='AbortError'){backupMessage('Share canceled. ZIP remains ready; nothing was deleted.');return;}
+          downloadZip(archive.blob,archive.fileName);dispatched=true;}
+      }else{downloadZip(archive.blob,archive.fileName);dispatched=true;}
+    }catch(e){
+      try{downloadZip(archive.blob,archive.fileName);dispatched=true;}
+      catch(error){backupMessage('Cannot export ZIP: '+error.message,true);}
+    }finally{
+      if(dispatched){
+        try{
+          for(const p of archive.photos){const current=await getPhoto(p.id);
+            if(current?.blob&&!current.backupVerifiedAt){current.backupBatchId=archive.batchId;current.backupExportedAt=Date.now();await updatePhoto(current);}
+          }
+          preparedExport=null;$('backup-checked').checked=false;
+          backupMessage('ZIP sent to the share/download flow. NOT verified yet. Move it to your computer, open it and check the photos. Only then confirm step 2.');
+        }catch(e){backupMessage('ZIP sent, but could not record the export: '+e.message+'. Keep every local photo.',true);}
+      }
+      savingExport=false;await renderSettings();
+    }
+  }
+  async function confirmBackup(){
+    if(!$('backup-checked').checked){backupMessage('First check the confirmation box after inspecting the ZIP on your computer.',true);return;}
+    const pending=pendingBatch(await listPhotos());
+    if(!pending.length){backupMessage('No exported batch awaits verification.',true);return;}
+    if(!confirm('I have opened the exported ZIP ON MY COMPUTER and verified all '+pending.length+' photo(s). Mark this batch as backed up?'))return;
+    try{
+      const now=Date.now();
+      for(const p of pending){const current=await getPhoto(p.id);
+        if(current?.blob&&current.backupBatchId===p.backupBatchId){current.backupVerifiedAt=now;await updatePhoto(current);}
+      }
+      $('backup-checked').checked=false;
+      backupMessage('✓ '+pending.length+' photo(s) marked as manually verified on computer. You may now delete ONLY confirmed local photos in step 3.');
+      await renderSettings();
+    }catch(e){backupMessage('Could not record confirmation: '+e.message,true);}
+  }
+  async function clearBackedUp(){
+    const confirmed=localImages(await listPhotos()).filter(p=>p.backupVerifiedAt);
+    if(!confirmed.length)return;
+    const bytes=confirmed.reduce((n,p)=>n+p.blob.size,0);
+    const response=prompt('Delete '+confirmed.length+' confirmed local photo(s) and free '+(bytes/1024/1024).toFixed(1)+' MB?\nONLY if a verified copy remains on your computer.\nType DELETE to continue:');
+    if(response!=='DELETE'){backupMessage('Deletion canceled. Photos preserved.');return;}
+    try{
+      for(const p of confirmed){const current=await getPhoto(p.id);if(current?.blob&&current.backupVerifiedAt)await deletePhoto(p.id);}
+      backupMessage('Deleted '+confirmed.length+' confirmed local photo(s). Other photos were not touched.');
+      await renderSettings();await renderHome();
+    }catch(e){backupMessage('Cleanup interrupted: '+e.message+'. Check remaining photos.',true);await renderSettings();}
+  }
   async function setView(view){
     if(view==='camera'&&!state.confirmed){view='locations';$('open-camera').focus();}
     if(currentView==='camera'&&view!=='camera')stopCamera();
     currentView=view;document.querySelectorAll('.view').forEach(x=>x.classList.toggle('active',x.id==='view-'+view));document.querySelectorAll('.nav-item').forEach(x=>x.classList.toggle('active',x.dataset.view===view));
-    if(view==='camera'){updatePath();await startCamera();}if(view==='gallery')await renderGallery();else releaseUrls();if(view==='settings')await renderSettings();
+    if(view==='camera'){updatePath();await startCamera();}if(view==='gallery')await renderGallery();else releaseUrls();if(view==='settings')await renderSettings();if(view==='home')await renderHome();
   }
   function init(){
     validState();renderBuilding();renderFacilities();renderGroup();
@@ -218,36 +288,25 @@
     $('camera-retry').addEventListener('click',startCamera);
     $('shutter').addEventListener('click',takePicture);
     $('file-camera').addEventListener('change',async e=>{const file=e.target.files?.[0];if(file)await saveBlob(file,file.name);e.target.value='';});
+    for(const b of buildingIds)$('gallery-filter').append(option('building:'+b,b==='3615'?'3615 · Leasing Office':'Building '+b));
+    for(const f of facilities)$('gallery-filter').append(option('facility:'+f.id,f.label));
     $('gallery-filter').addEventListener('change',renderGallery);
     document.querySelectorAll('.nav-item').forEach(x=>x.addEventListener('click',()=>setView(x.dataset.view)));
     $('close-dialog').addEventListener('click',closeDialog);
     $('photo-dialog').addEventListener('cancel',e=>{e.preventDefault();closeDialog();});
     $('export-photo').addEventListener('click',exportSelected);
-    $('open-cloud-photo').addEventListener('click',()=>{const url=selectedPhoto?.cloud?.webUrl;if(url&&/^https:\/\//.test(url))window.open(url,'_blank','noopener,noreferrer');});
     $('delete-photo').addEventListener('click',removeSelected);
-    $('save-client-id').addEventListener('click',async()=>{
-      try{cloud.setClientId($('client-id').value);authMessage('Application ID saved on this device (not a secret).');await renderCloud();}
-      catch(e){authMessage('Error: '+e.message);}
-    });
-    $('connect-cloud').addEventListener('click',async()=>{
-      try{
-        // Save the just-entered ID to avoid requiring a separate step.
-        if($('client-id').value.trim()!==cloud.getClientId())cloud.setClientId($('client-id').value);
-        await cloud.startSignIn();
-      }catch(e){authMessage('Cannot connect: '+e.message);}
-    });
-    $('disconnect-cloud').addEventListener('click',async()=>{cloud.disconnect();authMessage('Disconnected on this device. Your OneDrive files remain untouched.');await renderCloud();});
-    $('sync-photos').addEventListener('click',syncPhotos);
-    $('delete-verified').addEventListener('click',()=>deleteVerifiedLocal().catch(e=>syncMessage('Cannot clear: '+e.message)));
-    window.addEventListener('online',()=>{if(cloud?.connected())void syncPhotos();});
+    $('home-take-photo').addEventListener('click',()=>setView('locations'));
+    $('home-my-photos').addEventListener('click',()=>setView('gallery'));
+    $('home-backup').addEventListener('click',()=>setView('settings'));
+    $('export-backup').addEventListener('click',prepareBackup);
+    $('save-backup').addEventListener('click',savePreparedBackup);
+    $('backup-checked').addEventListener('change',updateConfirmButton);
+    $('confirm-backup').addEventListener('click',confirmBackup);
+    $('clear-backed-up').addEventListener('click',clearBackedUp);
     window.addEventListener('pagehide',stopCamera);
-    if(cloud){
-      cloud.completeSignIn().then(result=>{
-        if(result.handled){authMessage('OneDrive connected for this session.');void syncPhotos();}
-        return renderCloud();
-      }).catch(e=>{authMessage('Microsoft sign-in error: '+e.message);void renderCloud();});
-    }
+    void renderHome();
     if('serviceWorker' in navigator && ['https:','http:'].includes(location.protocol))navigator.serviceWorker.register('./service-worker.js').catch(()=>{});
   }
-  if(apartments.length===500&&residential.length===54){init();}else{document.querySelector('.warning').textContent='Catalog failed validation: expected 500 apartments in 54 buildings. Camera disabled for safety.';$('open-camera').disabled=true;}
+  if(apartments.length===500&&residential.length===54){init();}else{document.querySelector('.warning').textContent='Catalog failed validation: expected 500 apartments in 54 buildings. Camera disabled for safety.';$('open-camera').disabled=true;$('home-take-photo').disabled=true;}
 })();

@@ -1,27 +1,41 @@
-# Work Camera — publication checklist (V2.1)
+# Work Camera V3 — Deploy and iPhone acceptance checklist
 
-## Repository (never modify Apartment Finder)
+## Deployment
 
-1. Sign in to GitHub as `evecima` and open <https://github.com/new>.
-2. Create a **new private repository** named `work-camera` (safer default for workplace building and apartment catalog). Select **Add a README file** to initialize the `main` branch (this lets ChatGPT upload the prepared files through the GitHub connection). Do not make the repository public without explicitly reviewing employer/privacy implications.
-3. Once the repo exists, ask ChatGPT to upload the prepared files through its connected GitHub tool (it will update the starter README). Alternatively, upload the **unzipped contents**, not the ZIP itself, into the root of the repository.
-4. Check the repo contains `index.html`, `app.js`, `onedrive.js`, `data/apartments.js`, `icons/`, `manifest.webmanifest`, `service-worker.js`, `.nojekyll` and `.github/workflows/validate.yml`.
-5. **Publication decision:** GitHub Free Pages requires a public repository and published pages are publicly reachable. Do **not** enable public Pages with the real workplace catalog by default. Use a controlled hosting option with access restrictions (or obtain explicit approval to publish the source/catalog). For an approved public prototype only: choose **Settings → Pages → Build and deployment → Source: Deploy from a branch → main / (root) → Save**.
-6. After the selected hosting is deployed, use its **actual HTTPS URL** as the exact OAuth SPA redirect URI. If, and only if, GitHub Pages was explicitly chosen and deployed, the URL will normally be `https://evecima.github.io/work-camera/`.
+Work Camera is hosted separately from Apartment Finder at:
+https://evecima.github.io/work-camera/
 
-## Microsoft OneDrive authorization (personal account)
+The GitHub repository is `evecima/work-camera`, and GitHub Pages publishes `main` / root. Never modify or redeploy `evecima/gb-af-tool` while updating this project.
 
-1. In the browser, go to <https://entra.microsoft.com/> and create a Microsoft Entra **App registration** named `Work Camera`. Choose personal Microsoft accounts support.
-2. Under Authentication register the **exact deployed HTTPS URL** shown by Work Camera → Storage as a **SPA** redirect URI (not a Web/Confidential redirect). Do not create or share client secrets.
-3. Under Microsoft Graph delegated API permissions request only `Files.ReadWrite.AppFolder` (preview status for delegated permission; verify acceptance with the actual account).
-4. Copy the **Application (client) ID** into the Work Camera Storage screen. It is a public identifier, **not** a password. Press Connect OneDrive and use Microsoft’s login page.
-5. Test with a photo of a non-sensitive object and select `3615 → Boiler Room`. Synchronize and check the remote photo under `Apps/Work Camera/Work Camera Photos/3615/Boiler Room/`.
-6. Verify offline behavior, reconnect, restore and that a cloud-only gallery entry still opens after **Free local space**. Never free local space until the remote photo has been manually inspected.
+No Azure, OneDrive or Apple Developer configuration is required for the local-only release.
 
-## Critical warnings
+## iPhone setup
 
-- A GitHub Pages website has a public URL; it is not access-controlled. It must not host work photos or credentials. If the repo is public, its building/unit catalog is also public. Prefer a private repository and access-controlled hosting for any employer catalog.
-- Photos remain in browser IndexedDB until successfully synced; iOS may erase web storage, so do not treat it as reliable long-term retention.
-- OAuth tokens are held in memory only; reconnect after reload. Auto sync while the app is closed is **not** implemented.
-- Do not upload resident or workplace photos to a personal Microsoft account without management authorization.
-- OneDrive authorization and iPhone photo capture must be live-tested before using the app for important work.
+1. Open the public URL using **Safari** on the iPhone.
+2. Use the Share menu to **Add to Home Screen**. Keep exactly one icon named **Work Camera**.
+3. Open the installed app and check that Home shows **Take Photo** and **My Photos**.
+4. Select a harmless test location and take a test photo with the in-app camera. Check the photo in **My Photos** under that location.
+5. Put the phone into Airplane Mode and reopen the installed app. Test browsing the library and (where permitted) camera capture offline. The browser may need an initial online load for service-worker installation.
+6. In **Weekly Backup** press **Prepare ZIP**, then **Save / Share ZIP**. Choose the local destination explicitly (prefer **On My iPhone** or a local external drive, not iCloud Drive if cloud use is not wanted).
+7. Transfer the ZIP to a computer via AirDrop / network share / compatible external drive, open it and confirm the photo files plus `manifest.json` exist.
+8. Only after verification, check the confirmation checkbox and press **Confirm verified batch**.
+9. For test photos only, verify that **Delete verified local photos** requires an explicit `DELETE` typed confirmation. Do not clear real photos until backed up.
+
+**Critical**: this is an iOS PWA. IndexedDB can be evicted or deleted; transferring pictures weekly reduces but does not eliminate loss risk between exports. Export critical photos promptly. An installed PWA can use storage separate from Safari, so inspect existing devices/app icons before replacing one.
+
+## Diagnostics
+
+GitHub Actions workflow `.github/workflows/validate.yml` checks catalog integrity, JavaScript syntax and ZIP folder/CRC structure.
+
+```sh
+node --check app.js
+node --check local-backup.js
+node --check service-worker.js
+node tests/catalog-smoke.cjs
+node tests/local-backup-smoke.cjs
+```
+
+Automatic deletion is disabled. A backup is only *manually confirmed* by the user after checking the copy on their computer; no remote file verification is possible in a local-only app.
+
+The public site contains the building/unit catalog. No captured photo blobs are published to GitHub or transmitted to OneDrive.
+
