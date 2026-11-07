@@ -45,3 +45,10 @@ label:not(.file-button){display:block;color:#a9bad0;font-size:11px;font-weight:8
 #camera-view-gallery{white-space:normal}
 .dialog-actions{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px}
 .dialog-actions .btn{font-size:13px;white-space:normal;min-width:0;padding:12px 7px}
+
+/* Work Camera v3.3: visible runtime version and safe cache refresh */
+.app-update{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 2px 3px;margin-top:14px}
+.app-update span{color:var(--muted);font-size:12px}
+.app-update strong{color:var(--text)}
+.app-update .btn{font-size:12px;padding:10px 12px;white-space:normal}
+.app-update-message{min-height:0;font-size:12px;line-height:1.5;color:var(--muted);margin:5px 2px 10px}

@@ -44,6 +44,15 @@ Work_Camera_2026-11-06_wc-....zip
 
 ## Install and update
 
+### Version v3.3: safe update troubleshooting
+
+The Home screen shows **Running version: V3.3.0** from the executable JavaScript, plus **Update app**. That button checks the service worker and reloads the app using a fresh URL while keeping the same IndexedDB database. It **does not erase photos, clear website data, or remove the home-screen icon**.
+
+On an installed iPhone PWA, if the visible version is absent or older, ensure the iPhone is online, fully quit Work Camera from the app switcher, reopen it, and check again. If the new version appears, tap **Update app** and check the runtime label. **Do not uninstall the app, delete the icon, or clear Safari data** to force an update; those actions may lose saved work photos.
+
+The intended capture behavior: accepting **Use Photo** saves the image and returns to the capture screen; **Photo Details** appears only after opening **My Photos** and tapping a thumbnail.
+
+
 1. Open https://evecima.github.io/work-camera/ in Safari on the iPhone.
 2. Use **Share → Add to Home Screen** (or **Add to Home Screen → Open as Web App**, depending on iOS). The icon is named **Work Camera**.
 3. Open it, confirm you see **Take Photo** and **My Photos**, select a destination, then tap **Take Photo**; the iPhone system capture should open. Accept a harmless photo, check Photo details, and test **Share** to your own app/device. If you need all advanced Camera tools, take a photo in Apple Camera and select **Import from Photos** inside Work Camera.
