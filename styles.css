@@ -33,3 +33,15 @@ label:not(.file-button){display:block;color:#a9bad0;font-size:11px;font-weight:8
 .backup-message.error{color:#ffb6a3}
 #backup-summary,#storage-number{font-size:13px;line-height:1.65;white-space:pre-line;color:#dcecff}
 #backup-ready{font-size:12px;white-space:pre-line;overflow-wrap:anywhere}
+
+/* V3.1: native iPhone capture and per-photo sharing */
+.native-camera-panel{background:#1b2e45;border:1px solid #365473;border-radius:16px;padding:25px 18px;display:flex;flex-direction:column;align-items:stretch;gap:12px;text-align:center;margin-top:18px}
+.native-camera-icon{font-size:54px;line-height:1.2}
+.native-camera-panel h3{font-size:20px;margin:2px 0 0}
+.native-camera-panel p{margin:0;color:var(--muted);font-size:13px;line-height:1.6}
+.native-camera-panel label.native-camera-label{display:flex;justify-content:center;align-items:center;margin:4px 0 0;font-size:16px;letter-spacing:normal;cursor:pointer;white-space:normal;min-height:55px;text-align:center}
+.native-camera-panel label.native-camera-label:focus-visible{outline:3px solid #b5dcff;outline-offset:3px}
+.native-camera-panel .native-camera-note{font-size:11px;margin-top:4px;text-align:left;color:#adc5df}
+#camera-view-gallery{white-space:normal}
+.dialog-actions{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px}
+.dialog-actions .btn{font-size:13px;white-space:normal;min-width:0;padding:12px 7px}
