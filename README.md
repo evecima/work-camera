@@ -6,11 +6,11 @@
 
 One home-screen icon named **Work Camera** opens a simple home screen:
 
-- **Take Photo** — select a building, apartment/area or facility, then take photos. The app remembers the latest location.
-- **My Photos** — browse local work photos by building, area and apartment; filter locations and export individual images.
+- **Take Photo** — select a building, apartment/area or facility. Confirming the location immediately invokes iPhone's system photo capture interface (`input type=file accept=image/* capture=environment`), without Work Camera's former web-video viewfinder. It remembers the latest location. After accepting the photo, Work Camera opens its details for review, Share, Download or Delete.
+- **My Photos** — browse local work photos by building, area and apartment; filter locations; use **Share** to invoke the iPhone share sheet for Messages, Mail, AirDrop or other compatible targets, **Download** to export the file, or **Delete** with confirmation. Shares are initiated by the user and do not constitute a backup.
 - **Weekly Backup** — create a ZIP of original photos sorted into folders; copy it to a computer, open and inspect it, explicitly confirm the backup, and only then unlock the delete-verified option.
 
-Photographs captured through the in-app camera are stored privately in this iPhone web application's **IndexedDB**, not uploaded to any cloud and not automatically copied into Apple Photos. The system-camera fallback may have device-specific behavior. ZIP exports use iOS Share / Save to Files where supported, otherwise browser download. ZIPs are divided into manageable batches (normally up to 80 photos and ~70 MB). Every ZIP contains a `manifest.json` listing the photo paths.
+Photos accepted from the iPhone system capture interface are stored privately in this iPhone web application's **IndexedDB**, not uploaded to any cloud. iOS controls which native capture functions are available: **a PWA cannot demand every feature of the full Apple Camera app**. For advanced photography, take the photo in Apple's Camera app and choose **Import from Photos**; those original shots also remain in the Apple Photos library. System-capture storage behavior should be checked on the user's iOS version. ZIP exports use iOS Share / Save to Files where supported, otherwise browser download. ZIPs are divided into manageable batches (normally up to 80 photos and ~70 MB). Every ZIP contains a `manifest.json` listing the photo paths.
 
 **The application cannot verify files on the user's computer.** “Confirm verified batch” is a **manual user attestation**, not cryptographic or remote verification. ZIP creation, sharing or download alone never authorizes deletion. Confirmed photos are deleted locally only after another explicit `DELETE` confirmation.
 
@@ -46,7 +46,7 @@ Work_Camera_2026-11-06_wc-....zip
 
 1. Open https://evecima.github.io/work-camera/ in Safari on the iPhone.
 2. Use **Share → Add to Home Screen** (or **Add to Home Screen → Open as Web App**, depending on iOS). The icon is named **Work Camera**.
-3. Open it, confirm you see **Take Photo** and **My Photos**, and test with a harmless photo.
+3. Open it, confirm you see **Take Photo** and **My Photos**, select a destination, then tap **Take Photo**; the iPhone system capture should open. Accept a harmless photo, check Photo details, and test **Share** to your own app/device. If you need all advanced Camera tools, take a photo in Apple Camera and select **Import from Photos** inside Work Camera.
 4. In **Weekly Backup**, prepare a ZIP, save it, inspect the copied archive on a computer, then confirm the verified batch.
 5. **Do not delete** the app or its local data until your test and any existing photos are backed up.
 
