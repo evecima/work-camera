@@ -3,6 +3,7 @@
  */
 (() => {
   'use strict';
+  const APP_VERSION='3.3.0';
   const apartments = Array.isArray(window.WC_APARTMENTS) ? window.WC_APARTMENTS : [];
   const residential = [...new Set(apartments.map(x => String(x.building)))].sort((a,b)=>Number(a)-Number(b));
   const boilers = new Set(['3514','3515','3544','3545','3570','3595','3615','3645','3685','3715','3720','3735','3770','3775','3825','3845']);
@@ -274,12 +275,36 @@
       await renderSettings();await renderHome();
     }catch(e){backupMessage('Cleanup interrupted: '+e.message+'. Check remaining photos.',true);await renderSettings();}
   }
+  async function refreshApp(){
+    const message=$('update-message'),button=$('refresh-app');
+    if(!navigator.onLine){
+      message.textContent='Connect to the internet before checking for an updated version. No photos were changed.';
+      return;
+    }
+    button.disabled=true;
+    message.textContent='Checking for the latest Work Camera version. Your photos will stay on this device…';
+    try{
+      if('serviceWorker' in navigator){
+        const registration=await navigator.serviceWorker.getRegistration('./');
+        if(registration)await registration.update();
+      }
+      // Same origin and IndexedDB; only a new page request, never delete site data.
+      const address=new URL(location.href);
+      address.searchParams.set('wc-update',APP_VERSION+'-'+Date.now());
+      window.location.replace(address.href);
+    }catch(error){
+      message.textContent='Update check failed: '+(error?.message||error)+'. No photos were deleted.';
+      button.disabled=false;
+    }
+  }
   async function setView(view){
     if(view==='camera'&&!state.confirmed){view='locations';$('open-camera').focus();}
     currentView=view;document.querySelectorAll('.view').forEach(x=>x.classList.toggle('active',x.id==='view-'+view));document.querySelectorAll('.nav-item').forEach(x=>x.classList.toggle('active',x.dataset.view===view));
     if(view==='camera')updatePath();if(view==='gallery')await renderGallery();else releaseUrls();if(view==='settings')await renderSettings();if(view==='home')await renderHome();
   }
   function init(){
+    $('runtime-version').textContent='V'+APP_VERSION;
+    $('refresh-app').addEventListener('click',refreshApp);
     validState();renderBuilding();renderFacilities();renderGroup();
     $('building').addEventListener('change',e=>{state.building=e.target.value;state.area=state.building==='3615'?'office':'apartment';state.unit='';markChanged();renderAreas();});
     $('unit').addEventListener('change',e=>{state.unit=e.target.value;markChanged();});
@@ -307,7 +332,7 @@
     $('confirm-backup').addEventListener('click',confirmBackup);
     $('clear-backed-up').addEventListener('click',clearBackedUp);
     void renderHome();
-    if('serviceWorker' in navigator && ['https:','http:'].includes(location.protocol))navigator.serviceWorker.register('./service-worker.js').catch(()=>{});
+    if('serviceWorker' in navigator && ['https:','http:'].includes(location.protocol))navigator.serviceWorker.register('./service-worker.js?v='+APP_VERSION,{updateViaCache:'none'}).catch(()=>{});
   }
   if(apartments.length===500&&residential.length===54){init();}else{document.querySelector('.warning').textContent='Catalog failed validation: expected 500 apartments in 54 buildings. Camera disabled for safety.';$('open-camera').disabled=true;$('home-take-photo').disabled=true;}
 })();
