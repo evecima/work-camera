@@ -34,7 +34,7 @@
     facility:facilities.some(f=>f.id===previous.facility)?previous.facility:'pool',
     confirmed:!!previous.confirmed
   };
-  let currentView='home'; let stream=null; let databasePromise=null; let urls=[]; let detailURL=null; let selectedPhoto=null;
+  let currentView='home'; let databasePromise=null; let urls=[]; let detailURL=null; let selectedPhoto=null;
   let preparedExport=null, preparingExport=false, savingExport=false;
   const MAX_BATCH_BYTES=70*1024*1024, MAX_BATCH_PHOTOS=80;
   function validState(){
@@ -104,25 +104,12 @@
   function notify(message,isError=false){$('camera-message').textContent=message;$('camera-message').classList.toggle('error',isError);}
   async function saveBlob(blob,filename){
     if(!blob||!blob.size){notify('Empty image: nothing saved.',true);return;}
-    try{const photo=await addPhoto(blob,filename);notify('✓ Saved privately on this device: '+photo.location.path);}catch(e){notify('Could not save photo: '+e.message,true);}
-  }
-  async function startCamera(){
-    stopCamera();notify('');
-    const video=$('camera-video');$('camera-placeholder').classList.remove('hide');$('shutter').disabled=true;
+    if(!blob.type.startsWith('image/')){notify('Select a photo file, not another document.',true);return;}
     try{
-      if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia)throw new Error('Secure HTTPS camera access unavailable');
-      stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'environment'},width:{ideal:1920},height:{ideal:1080}},audio:false});
-      if(currentView!=='camera'){stopCamera();return;}
-      video.srcObject=stream;await video.play();$('camera-placeholder').classList.add('hide');$('shutter').disabled=false;
-    }catch(e){notify('Camera preview unavailable. Tap ＋ to open the phone camera.',true);}
-  }
-  function stopCamera(){if(stream){stream.getTracks().forEach(t=>t.stop());stream=null;}$('camera-video').srcObject=null;$('shutter').disabled=true;}
-  async function takePicture(){
-    const video=$('camera-video');if(!stream||!video.videoWidth)return;
-    const canvas=$('photo-canvas');const w=video.videoWidth,h=video.videoHeight;const scale=Math.min(1,2000/Math.max(w,h));canvas.width=Math.round(w*scale);canvas.height=Math.round(h*scale);
-    const ctx=canvas.getContext('2d');ctx.drawImage(video,0,0,canvas.width,canvas.height);
-    $('shutter').disabled=true;
-    try{const blob=await new Promise(resolve=>canvas.toBlob(resolve,'image/jpeg',.86));await saveBlob(blob,`WC_${new Date().toISOString().replace(/[.:]/g,'-')}.jpg`);}finally{$('shutter').disabled=!stream;}
+      const photo=await addPhoto(blob,filename);
+      notify('✓ Saved privately on this device: '+photo.location.path);
+      showDetails(photo);
+    }catch(e){notify('Could not save photo: '+e.message,true);}
   }
   function releaseUrls(){urls.forEach(u=>URL.revokeObjectURL(u));urls=[];}
   async function renderGallery(){
@@ -148,9 +135,25 @@
       }
     }catch(e){$('gallery-empty').classList.remove('hide');$('gallery-empty').querySelector('p').textContent='Could not read local photos: '+e.message;}
   }
-  function showDetails(photo){selectedPhoto=photo;if(detailURL)URL.revokeObjectURL(detailURL);detailURL=photo.blob?URL.createObjectURL(photo.blob):null;$('detail-image').classList.toggle('hide',!detailURL);if(detailURL)$('detail-image').src=detailURL;else $('detail-image').removeAttribute('src');$('export-photo').disabled=!photo.blob;$('detail-info').textContent=photo.location.path+' · '+new Date(photo.createdAt).toLocaleString()+' · '+((photo.size||0)/1024/1024).toFixed(2)+' MB · '+(!photo.blob?'No local photo (legacy entry)':photo.backupVerifiedAt?'Computer backup confirmed':'NOT verified on computer');$('photo-dialog').showModal();}
+  function showDetails(photo){selectedPhoto=photo;if(detailURL)URL.revokeObjectURL(detailURL);detailURL=photo.blob?URL.createObjectURL(photo.blob):null;$('detail-image').classList.toggle('hide',!detailURL);if(detailURL)$('detail-image').src=detailURL;else $('detail-image').removeAttribute('src');$('export-photo').disabled=!photo.blob;$('share-photo').disabled=!photo.blob;$('detail-info').textContent=photo.location.path+' · '+new Date(photo.createdAt).toLocaleString()+' · '+((photo.size||0)/1024/1024).toFixed(2)+' MB · '+(!photo.blob?'No local photo (legacy entry)':photo.backupVerifiedAt?'Computer backup confirmed':'NOT verified on computer');$('photo-dialog').showModal();}
   function closeDialog(){$('photo-dialog').close();if(detailURL)URL.revokeObjectURL(detailURL);detailURL=null;selectedPhoto=null;}
-  function exportSelected(){if(!selectedPhoto?.blob)return;const a=document.createElement('a');const url=URL.createObjectURL(selectedPhoto.blob);a.href=url;a.download=selectedPhoto.filename||'work-photo.jpg';document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),2000);}
+  function exportSelected(){if(!selectedPhoto?.blob)return;const a=document.createElement('a');const url=URL.createObjectURL(selectedPhoto.blob);a.href=url;a.download=selectedPhoto.filename||'work-photo.jpg';document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),60000);}
+  async function shareSelected(){
+    if(!selectedPhoto?.blob)return;
+    const photo=selectedPhoto;
+    const name=photo.filename||'work-photo.jpg';
+    const mime=photo.blob.type||photo.mime||'image/jpeg';
+    const file=new File([photo.blob],name,{type:mime});
+    if(typeof navigator.share!=='function'||typeof navigator.canShare!=='function'||!navigator.canShare({files:[file]})){
+      alert('This browser cannot share this image directly. Use Download, then share it from Files.');
+      return;
+    }
+    try{
+      await navigator.share({files:[file],title:'Work Camera photo'});
+    }catch(e){
+      if(e?.name!=='AbortError')alert('Could not open sharing: '+(e?.message||'Please try Download instead.'));
+    }
+  }
   async function removeSelected(){if(!selectedPhoto)return;const reason=selectedPhoto.backupVerifiedAt?'This photo has a manually confirmed computer backup. Delete the local photo permanently?':'WARNING: This photo has NOT been confirmed on a computer. You may destroy its only copy. Delete permanently?';if(!confirm(reason))return;const id=selectedPhoto.id;try{await deletePhoto(id);closeDialog();renderGallery();}catch(e){alert('Delete failed: '+e.message);}}
 
   function localImages(all){return all.filter(p=>p.blob&&p.blob.size>0);}
@@ -274,26 +277,26 @@
   }
   async function setView(view){
     if(view==='camera'&&!state.confirmed){view='locations';$('open-camera').focus();}
-    if(currentView==='camera'&&view!=='camera')stopCamera();
     currentView=view;document.querySelectorAll('.view').forEach(x=>x.classList.toggle('active',x.id==='view-'+view));document.querySelectorAll('.nav-item').forEach(x=>x.classList.toggle('active',x.dataset.view===view));
-    if(view==='camera'){updatePath();await startCamera();}if(view==='gallery')await renderGallery();else releaseUrls();if(view==='settings')await renderSettings();if(view==='home')await renderHome();
+    if(view==='camera')updatePath();if(view==='gallery')await renderGallery();else releaseUrls();if(view==='settings')await renderSettings();if(view==='home')await renderHome();
   }
   function init(){
     validState();renderBuilding();renderFacilities();renderGroup();
     $('building').addEventListener('change',e=>{state.building=e.target.value;state.area=state.building==='3615'?'office':'apartment';state.unit='';markChanged();renderAreas();});
     $('unit').addEventListener('change',e=>{state.unit=e.target.value;markChanged();});
     ['buildings','facilities'].forEach(g=>$('mode-'+g).addEventListener('click',()=>{state.group=g;markChanged();renderGroup();}));
-    $('open-camera').addEventListener('click',()=>{state.confirmed=true;persist();setView('camera');});
+    $('open-camera').addEventListener('click',()=>{state.confirmed=true;persist();void setView('camera');notify('');$('file-camera').click();});
     $('change-location').addEventListener('click',()=>setView('locations'));
-    $('camera-retry').addEventListener('click',startCamera);
-    $('shutter').addEventListener('click',takePicture);
-    $('file-camera').addEventListener('change',async e=>{const file=e.target.files?.[0];if(file)await saveBlob(file,file.name);e.target.value='';});
+    $('camera-view-gallery').addEventListener('click',()=>setView('gallery'));
+    $('file-camera').addEventListener('change',async e=>{const file=e.target.files?.[0];e.target.value='';if(file)await saveBlob(file,file.name);});
+    $('file-import').addEventListener('change',async e=>{const file=e.target.files?.[0];e.target.value='';if(file)await saveBlob(file,file.name);});
     for(const b of buildingIds)$('gallery-filter').append(option('building:'+b,b==='3615'?'3615 · Leasing Office':'Building '+b));
     for(const f of facilities)$('gallery-filter').append(option('facility:'+f.id,f.label));
     $('gallery-filter').addEventListener('change',renderGallery);
     document.querySelectorAll('.nav-item').forEach(x=>x.addEventListener('click',()=>setView(x.dataset.view)));
     $('close-dialog').addEventListener('click',closeDialog);
     $('photo-dialog').addEventListener('cancel',e=>{e.preventDefault();closeDialog();});
+    $('share-photo').addEventListener('click',shareSelected);
     $('export-photo').addEventListener('click',exportSelected);
     $('delete-photo').addEventListener('click',removeSelected);
     $('home-take-photo').addEventListener('click',()=>setView('locations'));
@@ -304,7 +307,6 @@
     $('backup-checked').addEventListener('change',updateConfirmButton);
     $('confirm-backup').addEventListener('click',confirmBackup);
     $('clear-backed-up').addEventListener('click',clearBackedUp);
-    window.addEventListener('pagehide',stopCamera);
     void renderHome();
     if('serviceWorker' in navigator && ['https:','http:'].includes(location.protocol))navigator.serviceWorker.register('./service-worker.js').catch(()=>{});
   }
