@@ -41,6 +41,14 @@ async function test(){
   assert(html.includes('id="view-home"')&&html.includes('id="home-take-photo"')&&html.includes('id="home-my-photos"'));
   assert(html.includes('id="confirm-backup"')&&html.includes('id="clear-backed-up"'));
   assert(!html.includes('src="onedrive.js"'),'No cloud connector should run');
-  console.log('PASS: ZIP CRC, folder layout, manifest, home screen, and local-only scripts');
+  assert(html.includes('id="file-camera"')&&html.includes('capture="environment"'),'System camera capture required');
+  assert(html.includes('id="file-import"'),'Manual import path is required for advanced Apple Camera shots');
+  assert(html.includes('id="share-photo"')&&html.includes('id="delete-photo"'),'Photo details require Share and Delete');
+  assert(!html.includes('id="camera-video"'),'Remove custom getUserMedia camera viewfinder');
+  const app=fs.readFileSync(path.join(__dirname,'../app.js'),'utf8');
+  assert(app.includes("navigator.share({files:[file]"),'Share button must invoke native file share');
+  assert(app.includes("$('file-camera').click()"),'Location confirmation should launch system capture immediately');
+  assert(!app.includes('getUserMedia'),'No automatic custom camera stream');
+  console.log('PASS: ZIP CRC, folders, local-only app, native capture and photo sharing');
 }
 test().catch(e=>{console.error(e);process.exitCode=1;});
