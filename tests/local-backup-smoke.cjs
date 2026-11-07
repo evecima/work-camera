@@ -48,15 +48,21 @@ async function test(){
   const app=fs.readFileSync(path.join(__dirname,'../app.js'),'utf8');
   assert(app.includes("navigator.share({files:[file]"),'Share button must invoke native file share');
   assert(app.includes("$('file-camera').click()"),'Location confirmation should launch system capture immediately');
-  assert(!app.includes('getUserMedia'),'No automatic custom camera stream');
+  const nativeCaptureHandler=app.slice(app.indexOf("$('open-camera').addEventListener"),app.indexOf("$('open-continuous').addEventListener"));
+  assert(!nativeCaptureHandler.includes('getUserMedia'),'Native mode must not start the web camera');
+  assert(app.includes("navigator.mediaDevices.getUserMedia("),'Continuous mode must request a live camera');
+  assert(html.includes('id="open-continuous"')&&html.includes('id="continuous-shutter"')&&html.includes('id="continuous-video"'),'Continuous shooting controls must exist');
+  assert(app.includes("await saveBlob(blob,filename)"),'Continuous shots must save to existing IndexedDB path');
+  assert(app.includes("currentView==='camera'&&view!=='camera'"),'Continuous camera must stop on navigation');
+  assert(app.includes("window.addEventListener('pagehide',stopContinuousCamera)"),'Continuous camera must release resources on exit');
   const captureSave = app.slice(app.indexOf('async function saveBlob('),app.indexOf('function releaseUrls('));
   assert(captureSave.includes('await addPhoto(blob,filename)'),'Accepted capture must be saved');
   assert(!captureSave.includes('showDetails('),'Saving a capture must not automatically open Photo Details');
   assert(app.includes("tile.addEventListener('click',()=>showDetails(p))"),'Tapping a gallery photo should still open Photo Details');
-  assert(html.includes('open My Photos and tap its thumbnail'),'User instructions must match the new interaction');
+  assert(html.includes('Review saved pictures in My Photos.'),'User instructions must preserve gallery-only details');
   assert(html.includes('id="runtime-version"')&&html.includes('id="refresh-app"'),'In-app version and update control must be visible');
   for(const script of ['app.js','local-backup.js','data/apartments.js'])
-    assert(html.includes(script+'?v=3.3.0'),'Versioned JS needed: '+script);
+    assert(html.includes(script+'?v=3.4.0'),'Versioned JS needed: '+script);
   assert(html.includes('styles.css?v=3.3.0'),'Versioned CSS required');
   assert(app.includes("const APP_VERSION='3.3.0'"),'Runtime build must identify the executable JS version');
   assert(app.includes("window.location.replace(address.href)"),'Refresh should navigate without changing storage');
@@ -66,6 +72,6 @@ async function test(){
   assert(worker.includes("fetch(event.request,{cache:'no-store'})"),'Online fetch must bypass HTTP cache');
   assert(worker.includes("cache.match('./index.html')"),'Offline fallback must remain available');
   assert(!worker.includes('indexedDB'),'SW must not modify photos');
-  console.log('PASS: ZIP, catalog, native capture, photo details on tap and safe PWA update path');
+  console.log('PASS: ZIP, original iPhone capture, opt-in continuous camera, gallery details and safe PWA updates');
 }
 test().catch(e=>{console.error(e);process.exitCode=1;});
