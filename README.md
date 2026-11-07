@@ -50,7 +50,7 @@ Work_Camera_2026-11-06_wc-....zip
 4. In **Weekly Backup**, prepare a ZIP, save it, inspect the copied archive on a computer, then confirm the verified batch.
 5. **Do not delete** the app or its local data until your test and any existing photos are backed up.
 
-The cloud connector `onedrive.js` was part of the old V2 prototype; it is not loaded by V3. No OneDrive API calls are made.
+The previous OneDrive connector and its test have been removed from the V3 source tree. Historical commits retain the V2 prototype if ever needed. No OneDrive API calls are made.
 
 ## Developer checks
 
