@@ -6,7 +6,8 @@
 
 One home-screen icon named **Work Camera** opens a simple home screen:
 
-- **Take Photo** — select a building, apartment/area or facility. Confirming the location immediately invokes iPhone's system photo capture interface (`input type=file accept=image/* capture=environment`), without Work Camera's former web-video viewfinder. It remembers the latest location. After accepting a photo, Work Camera saves it and stays on the capture screen; details appear only when the user opens **My Photos** and taps a saved photo.
+- **Take Photo** — select a building, apartment/area or facility. Choose **iPhone Camera · One photo** for the familiar iOS system capture interface (it necessarily returns to Work Camera after **Use Photo**); or **Continuous Camera · Several photos** for a live in-app viewfinder that remains open between shots. The app remembers the location and saves each accepted image locally. Photo Details appear only after tapping a saved image in **My Photos**.
+- **Continuous Camera limitations** — uses `getUserMedia()` / canvas JPEG capture, not Apple's full Camera app. Image resolution depends on the iPhone/browser stream and may be lower than native HEIC photos; flash, portrait, Apple image processing and all native controls are not guaranteed. Switch back to iPhone Camera whenever native photo quality or controls matter. Camera permission may be required; the continuous session closes on exit/background.
 - **My Photos** — browse local work photos by building, area and apartment; filter locations; use **Share** to invoke the iPhone share sheet for Messages, Mail, AirDrop or other compatible targets, **Download** to export the file, or **Delete** with confirmation. Shares are initiated by the user and do not constitute a backup.
 - **Weekly Backup** — create a ZIP of original photos sorted into folders; copy it to a computer, open and inspect it, explicitly confirm the backup, and only then unlock the delete-verified option.
 
@@ -44,13 +45,13 @@ Work_Camera_2026-11-06_wc-....zip
 
 ## Install and update
 
-### Version v3.3: safe update troubleshooting
+### Version v3.4: safe update troubleshooting
 
-The Home screen shows **Running version: V3.3.0** from the executable JavaScript, plus **Update app**. That button checks the service worker and reloads the app using a fresh URL while keeping the same IndexedDB database. It **does not erase photos, clear website data, or remove the home-screen icon**.
+The Home screen shows **Running version: V3.4.0** from the executable JavaScript, plus **Update app**. That button checks the service worker and reloads the app using a fresh URL while keeping the same IndexedDB database. It **does not erase photos, clear website data, or remove the home-screen icon**.
 
 On an installed iPhone PWA, if the visible version is absent or older, ensure the iPhone is online, fully quit Work Camera from the app switcher, reopen it, and check again. If the new version appears, tap **Update app** and check the runtime label. **Do not uninstall the app, delete the icon, or clear Safari data** to force an update; those actions may lose saved work photos.
 
-The intended capture behavior: accepting **Use Photo** saves the image and returns to the capture screen; **Photo Details** appears only after opening **My Photos** and tapping a thumbnail.
+The intended capture behavior: iPhone Camera **Use Photo** returns to the Work Camera capture page by iOS design; Continuous Camera allows repeated captures without leaving its viewfinder. **Photo Details** appears only after opening **My Photos** and tapping a thumbnail.
 
 
 1. Open https://evecima.github.io/work-camera/ in Safari on the iPhone.
