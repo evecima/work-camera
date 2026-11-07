@@ -34,7 +34,7 @@
       <p class="hint">No cloud photo upload. Back up your work photos before clearing space or deleting the app.</p>
     </section>
     <section id="view-locations" class="view" aria-labelledby="locations-title">
-      <div class="section-heading"><h2 id="locations-title">Choose location</h2><p>Pick a destination before opening the camera.</p></div>
+      <div class="section-heading"><h2 id="locations-title">Choose location</h2><p>Pick a destination, then capture directly with the iPhone.</p></div>
       <div class="segment" role="tablist" aria-label="Location group">
         <button type="button" id="mode-buildings" class="active" role="tab" aria-selected="true">Buildings</button>
         <button type="button" id="mode-facilities" role="tab" aria-selected="false">Facilities</button>
@@ -54,26 +54,26 @@
         <div id="facilities" class="facility-list" role="group" aria-label="Select facility"></div>
       </div>
       <div class="destination"><small>PHOTO DESTINATION</small><div>📁 <span id="selected-path"></span></div></div>
-      <button type="button" id="open-camera" class="btn btn-primary btn-large">📸 &nbsp; Open Camera</button>
+      <button type="button" id="open-camera" class="btn btn-primary btn-large">📸 &nbsp; Take Photo</button>
     </section>
 
     <section id="view-camera" class="view" aria-labelledby="camera-title">
-      <div class="camera-bar"><button type="button" id="change-location" class="btn btn-secondary">‹ Change location</button><span class="pill">Ready</span></div>
-      <h2 id="camera-title" class="sr-only">Camera</h2>
-      <div class="camera-stage">
-        <video id="camera-video" playsinline autoplay muted></video>
-        <div id="camera-placeholder" class="camera-placeholder"><span>📷</span><strong>Camera preview</strong><p>Allow access to your camera to take a work photo.</p></div>
-        <canvas id="photo-canvas" class="hide"></canvas>
-      </div>
-      <div class="camera-actions">
-        <button type="button" class="btn btn-secondary" id="camera-retry" title="Restart camera">↻</button>
-        <button type="button" id="shutter" class="shutter" aria-label="Take photo" disabled><span></span></button>
-        <label for="file-camera" class="file-button" title="Use system camera / select image">＋</label>
-        <input type="file" id="file-camera" accept="image/*" capture="environment" aria-label="Use phone camera fallback" class="visually-hidden">
+      <div class="camera-bar"><button type="button" id="change-location" class="btn btn-secondary">‹ Change location</button><span class="pill">On device</span></div>
+      <h2 id="camera-title" class="sr-only">Take Photo</h2>
+      <div class="native-camera-panel">
+        <div class="native-camera-icon" aria-hidden="true">📷</div>
+        <h3>iPhone Camera</h3>
+        <p>Capture a work photo using the iPhone's system camera interface. Review or retake in the camera before accepting it.</p>
+        <label for="file-camera" class="btn btn-primary btn-large native-camera-label">📸 Take Photo</label>
+        <input type="file" id="file-camera" accept="image/*" capture="environment" aria-label="Open iPhone camera" class="visually-hidden">
+        <label for="file-import" class="btn btn-secondary btn-large native-camera-label">＋ Import from Photos</label>
+        <input type="file" id="file-import" accept="image/*" aria-label="Import photo from Apple Photos" class="visually-hidden">
+        <p class="native-camera-note">The system decides which camera controls are available here. For advanced Camera modes, take the photo in Apple's Camera app and import it afterward. Imported photos also remain in Apple Photos.</p>
       </div>
       <div class="destination destination-camera"><small>PHOTOS GO TO</small><div>📁 <span id="camera-path"></span></div></div>
       <div class="notification" id="camera-message" role="status" aria-live="polite"></div>
-      <p class="hint">Use the white shutter to capture. If camera preview is unavailable, use the ＋ button.</p>
+      <button type="button" id="camera-view-gallery" class="btn btn-secondary btn-large">🖼️ View My Photos</button>
+      <p class="hint">After accepting a photo, review it in Work Camera. Use Share, Download or Delete in Photo details.</p>
     </section>
 
     <section id="view-gallery" class="view" aria-labelledby="gallery-title">
@@ -126,7 +126,7 @@
 <dialog id="photo-dialog" aria-label="Photo details">
   <div class="dialog-inner"><div class="dialog-head"><strong>Photo details</strong><button id="close-dialog" type="button" aria-label="Close">✕</button></div>
   <img id="detail-image" alt="Work photo preview"><div id="detail-info"></div>
-  <div class="dialog-actions"><button id="export-photo" class="btn btn-secondary" type="button">Download copy</button><button id="delete-photo" class="btn btn-danger" type="button">Delete photo</button></div></div>
+  <div class="dialog-actions"><button id="share-photo" class="btn btn-primary" type="button">↗ Share</button><button id="export-photo" class="btn btn-secondary" type="button">Download</button><button id="delete-photo" class="btn btn-danger" type="button">Delete</button></div></div>
 </dialog>
 <script src="data/apartments.js"></script>
 <script src="local-backup.js" defer></script>
