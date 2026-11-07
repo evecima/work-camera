@@ -1,5 +1,5 @@
 /* Work Camera shell cache only. IndexedDB photo blobs are never touched by updates. */
-const CACHE_NAME='work-camera-shell-v3.3.0';
+const CACHE_NAME='work-camera-shell-v3.4.0';
 const OWN_CACHE_PREFIX='work-camera-shell-';
 const APP_ASSETS=[
   './','./index.html','./styles.css?v=3.3.0','./app.js?v=3.3.0',
