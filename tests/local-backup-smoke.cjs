@@ -63,12 +63,12 @@ async function test(){
   assert(html.includes('id="runtime-version"')&&html.includes('id="refresh-app"'),'In-app version and update control must be visible');
   for(const script of ['app.js','local-backup.js','data/apartments.js'])
     assert(html.includes(script+'?v=3.4.0'),'Versioned JS needed: '+script);
-  assert(html.includes('styles.css?v=3.3.0'),'Versioned CSS required');
-  assert(app.includes("const APP_VERSION='3.3.0'"),'Runtime build must identify the executable JS version');
+  assert(html.includes('styles.css?v=3.4.0'),'Versioned CSS required');
+  assert(app.includes("const APP_VERSION='3.4.0'"),'Runtime build must identify the executable JS version');
   assert(app.includes("window.location.replace(address.href)"),'Refresh should navigate without changing storage');
   assert(!app.includes('indexedDB.deleteDatabase('),'Updating must never delete the photo database');
   const worker=fs.readFileSync(path.join(__dirname,'../service-worker.js'),'utf8');
-  assert(worker.includes("work-camera-shell-v3.3.0"),'New SW version required');
+  assert(worker.includes("work-camera-shell-v3.4.0"),'New SW version required');
   assert(worker.includes("fetch(event.request,{cache:'no-store'})"),'Online fetch must bypass HTTP cache');
   assert(worker.includes("cache.match('./index.html')"),'Offline fallback must remain available');
   assert(!worker.includes('indexedDB'),'SW must not modify photos');
