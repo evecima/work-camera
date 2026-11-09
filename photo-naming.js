@@ -62,7 +62,7 @@
     return building+' / '+area;
   }
   function caption(photo){
-    const stamp=localTimestamp(photo).replace('_',' ').replace(/_(\d\d)-(\d\d)-(\d\d)$/,' $1:$2:$3');
+    const stamp=localTimestamp(photo).replace(/_(\d\d)-(\d\d)-(\d\d)$/,' $1:$2:$3');
     return locationLabel(photo)+' · '+stamp;
   }
   function sharePayload(photos){
