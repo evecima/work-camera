@@ -63,3 +63,36 @@ label:not(.file-button){display:block;color:#a9bad0;font-size:11px;font-weight:8
 .continuous-actions .btn{white-space:normal;font-size:12px;padding:11px}
 .continuous-actions .shutter{flex:none}
 .continuous-counter{font-size:12px;color:var(--good);text-align:right;min-width:54px}
+
+/* Work Camera v3.5 — gallery batch selection and operations */
+.gallery-selection-tools{display:grid;grid-template-columns:auto auto 1fr;align-items:center;gap:8px;margin:0 0 18px}
+.gallery-selection-tools .btn{padding:10px 12px;font-size:12px;white-space:normal}
+#gallery-selection-summary{text-align:right;color:var(--muted);font-size:11px;line-height:1.4}
+.gallery-action-message{font-size:12px;line-height:1.5;color:var(--good);margin:0 0 12px;min-height:0}
+.gallery-action-message:empty{display:none}
+.gallery-action-message.error{color:#ffc5a1}
+.photo-cell{position:relative;min-width:0}
+.photo-cell .photo-tile{position:relative;display:block;width:100%;height:100%;min-width:0}
+.photo-cell .photo-tile.selected{border-color:#68b5ff;box-shadow:inset 0 0 0 2px #69affb,0 0 0 1px #68b5ff}
+.photo-cell .photo-tile:disabled{opacity:.65}
+.photo-select-indicator{position:absolute;top:10px;left:10px;width:30px;height:30px;border:2px solid #eef6ff;border-radius:50%;background:#071a2acc;display:grid;place-items:center;font-size:18px;font-weight:900;color:#fff;text-shadow:0 1px 2px #0008}
+.photo-tile.selected .photo-select-indicator{background:#2d7fd9;border-color:#fff}
+.photo-preview-button{position:absolute;top:7px;right:7px;width:39px;height:39px;border:1px solid #b8d0ea;border-radius:10px;background:#10283ce8;color:#fff;z-index:1;font-size:20px;display:grid;place-items:center}
+.photo-preview-button:focus-visible,.photo-cell .photo-tile:focus-visible{outline:3px solid #b5dcff;outline-offset:3px}
+.gallery-selection-actions{position:fixed;z-index:4;bottom:calc(84px + env(safe-area-inset-bottom));left:50%;transform:translateX(-50%);width:min(496px,calc(100vw - 24px));max-height:42dvh;overflow-y:auto;border:1px solid #527da4;border-radius:16px;background:#162a43f5;box-shadow:0 9px 28px #050b18c9;padding:12px 14px;backdrop-filter:blur(14px)}
+.gallery-selection-actions strong{font-size:12px;display:block;margin-bottom:9px;color:#e6f5ff}
+.gallery-bulk-buttons{display:grid;grid-template-columns:1fr 1fr 1fr;gap:7px}
+.gallery-bulk-buttons .btn{white-space:normal;min-width:0;padding:12px 5px;font-size:12px}
+.gallery-prepared-zip{border-top:1px solid #47637a;margin-top:11px;padding-top:10px;color:#d9ecff;font-size:12px;line-height:1.5}
+.gallery-prepared-actions{display:flex;gap:8px;margin-top:9px}
+.gallery-prepared-actions .btn{flex:1;font-size:12px;white-space:normal;padding:9px}
+#gallery-action-toast{font-size:11px;color:#acd5fa;line-height:1.5;white-space:pre-line;margin:8px 0 0}
+#gallery-action-toast:empty{display:none}
+#gallery-action-toast.error{color:#ffc5a1}
+#view-gallery.has-selection{padding-bottom:158px}
+#select-preview-photo{width:100%}
+@media(max-width:370px){
+  .gallery-selection-tools{grid-template-columns:1fr 1fr}
+  #gallery-selection-summary{grid-column:1/-1;text-align:left}
+  .gallery-selection-actions{bottom:calc(76px + env(safe-area-inset-bottom))}
+}
