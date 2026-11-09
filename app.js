@@ -3,7 +3,7 @@
  */
 (() => {
   'use strict';
-  const APP_VERSION='3.7.0';
+  const APP_VERSION='3.8.0';
   const apartments = Array.isArray(window.WC_APARTMENTS) ? window.WC_APARTMENTS : [];
   const residential = [...new Set(apartments.map(x => String(x.building)))].sort((a,b)=>Number(a)-Number(b));
   const boilers = new Set(['3514','3515','3544','3545','3570','3595','3615','3645','3685','3715','3720','3735','3770','3775','3825','3845']);
@@ -439,7 +439,7 @@
     // Gallery location choices now derive from saved local photo counts at render time.
     if(!window.WC_GALLERY_BULK)throw new Error('Photo gallery tools could not load.');
     window.WC_GALLERY_BULK.init({listPhotos,openDb,showDetails,renderHome,locationKey,buildingIds,facilities});
-    $('gallery-filter').addEventListener('change',renderGallery);
+    $('gallery-filter').addEventListener('change',window.WC_GALLERY_BULK.changedFilter);
     document.querySelectorAll('.nav-item').forEach(x=>x.addEventListener('click',()=>setView(x.dataset.view)));
     $('close-dialog').addEventListener('click',closeDialog);
     $('photo-dialog').addEventListener('cancel',e=>{e.preventDefault();closeDialog();});

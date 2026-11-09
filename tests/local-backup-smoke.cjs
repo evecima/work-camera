@@ -61,7 +61,7 @@ async function test(){
   assert(bulk.includes('photos.filter(p=>!p.backupVerifiedAt)'),'Unverified photos require a specific warning');
   assert(bulk.includes("store.delete(photo.id)"),'Batch delete must target only explicitly selected records');
   assert(!bulk.includes('indexedDB.deleteDatabase('),'Never destroy the photo database');
-  assert(html.indexOf('gallery-bulk.js?v=3.7.0')<html.indexOf('app.js?v=3.7.0'),'Gallery module must load before app');
+  assert(html.indexOf('gallery-bulk.js?v=3.8.0')<html.indexOf('app.js?v=3.8.0'),'Gallery module must load before app');
   assert(app.includes("$('file-camera').click()"),'Location confirmation should launch system capture immediately');
   const nativeCaptureHandler=app.slice(app.indexOf("$('open-camera').addEventListener"),app.indexOf("$('open-continuous').addEventListener"));
   assert(!nativeCaptureHandler.includes('getUserMedia'),'Native mode must not start the web camera');
@@ -77,19 +77,21 @@ async function test(){
   assert(html.includes('Review saved pictures in My Photos.'),'User instructions must preserve gallery-only details');
   assert(html.includes('id="runtime-version"')&&html.includes('id="refresh-app"'),'In-app version and update control must be visible');
   assert(html.includes('id="gallery-show-empty"'),'Gallery needs optional empty-building toggle');
+  assert(html.includes('id="gallery-folder-back"')&&html.includes('id="gallery-folder-path"'),'Gallery needs nested folder Back control and breadcrumbs');
+  assert(app.includes('window.WC_GALLERY_BULK.changedFilter'),'Changing gallery location should reset folder depth');
   assert(html.includes('id="gallery-location-summary"'),'Gallery must show populated-location summary');
   assert(app.includes('buildingIds,facilities});'),'Gallery needs the unchanged building/facilities catalog');
   assert(!app.includes("for(const b of buildingIds)$('gallery-filter').append"),'Gallery must not append every empty building at startup');
   for(const script of ['app.js','local-backup.js','data/apartments.js'])
-    assert(html.includes(script+'?v=3.7.0'),'Versioned JS needed: '+script);
-  assert(html.includes('styles.css?v=3.7.0'),'Versioned CSS required');
-  assert(app.includes("const APP_VERSION='3.7.0'"),'Runtime build must identify the executable JS version');
+    assert(html.includes(script+'?v=3.8.0'),'Versioned JS needed: '+script);
+  assert(html.includes('styles.css?v=3.8.0'),'Versioned CSS required');
+  assert(app.includes("const APP_VERSION='3.8.0'"),'Runtime build must identify the executable JS version');
   assert(app.includes("window.location.replace(address.href)"),'Refresh should navigate without changing storage');
   assert(!app.includes('indexedDB.deleteDatabase('),'Updating must never delete the photo database');
   const worker=fs.readFileSync(path.join(__dirname,'../service-worker.js'),'utf8');
-  assert(worker.includes("work-camera-shell-v3.7.0"),'New SW version required');
-  assert(worker.includes('gallery-bulk.js?v=3.7.0'),'Offline cache must contain the multi-select gallery module');
-  assert(worker.includes('apartment-lookup.js?v=3.7.0'),'Offline cache must contain the direct apartment finder');
+  assert(worker.includes("work-camera-shell-v3.8.0"),'New SW version required');
+  assert(worker.includes('gallery-bulk.js?v=3.8.0'),'Offline cache must contain the multi-select gallery module');
+  assert(worker.includes('apartment-lookup.js?v=3.8.0'),'Offline cache must contain the direct apartment finder');
   assert(worker.includes("fetch(event.request,{cache:'no-store'})"),'Online fetch must bypass HTTP cache');
   assert(worker.includes("cache.match('./index.html')"),'Offline fallback must remain available');
   assert(!worker.includes('indexedDB'),'SW must not modify photos');
