@@ -1,4 +1,4 @@
-/* Work Camera v3.5 — gallery multi-selection and offline bulk actions.
+/* Work Camera v3.7 — gallery multi-selection and photo-populated location filtering.
  * This module reads the existing IndexedDB photo store; no schema changes or cloud calls.
  */
 (function(root){
@@ -60,11 +60,77 @@
     if(busy)return;
     selection.clear();discardZip();notice('');refreshSelection();
   }
+  function summarizeLocations(photos,buildingIds,facilities){
+    const buildings=new Map(),sites=new Map();
+    let total=0;
+    const current=new Map();
+    const knownBuildings=new Set(buildingIds.map(String));
+    const knownFacilities=new Set(facilities.map(f=>String(f.id)));
+    for(const p of photos){
+      if(!p.blob||!p.blob.size)continue;
+      total++;
+      const loc=p.location||{};
+      if(loc.key)current.set(loc.key,(current.get(loc.key)||0)+1);
+      if(loc.group==='buildings'&&knownBuildings.has(String(loc.building))){
+        const key=String(loc.building);buildings.set(key,(buildings.get(key)||0)+1);
+      }else if(loc.group==='facilities'&&knownFacilities.has(String(loc.facility))){
+        const key=String(loc.facility);sites.set(key,(sites.get(key)||0)+1);
+      }
+    }
+    return {total,buildings,sites,current};
+  }
+  function refreshLocationChoices(photos){
+    const select=$('gallery-filter');
+    const previous=select.value||'all';
+    const showEmpty=$('gallery-show-empty').checked;
+    const buildingIds=api.buildingIds||[];
+    const facilities=api.facilities||[];
+    const summary=summarizeLocations(photos,buildingIds,facilities);
+    const createOption=(value,label)=>{
+      const option=document.createElement('option');option.value=value;option.textContent=label;return option;
+    };
+    const items=[
+      createOption('all','All locations · '+summary.total+' photo'+(summary.total===1?'':'s')),
+      createOption('current','Current location · '+(summary.current.get(api.locationKey())||0)+' photos')
+    ];
+    const values=new Set(['all','current']);
+    const buildingGroup=document.createElement('optgroup');
+    buildingGroup.label=showEmpty?'BUILDINGS':'BUILDINGS WITH PHOTOS';
+    for(const id of buildingIds){
+      const num=summary.buildings.get(String(id))||0;
+      if(!num&&!showEmpty)continue;
+      const name=id==='3615'?'3615 · Leasing Office':'Building '+id;
+      const option=createOption('building:'+id,(num?'📷 ':'')+name+' · '+num+' photo'+(num===1?'':'s'));
+      buildingGroup.append(option);
+      values.add(option.value);
+    }
+    if(buildingGroup.children.length)items.push(buildingGroup);
+    const facilitiesGroup=document.createElement('optgroup');
+    facilitiesGroup.label=showEmpty?'FACILITIES':'FACILITIES WITH PHOTOS';
+    for(const facility of facilities){
+      const num=summary.sites.get(String(facility.id))||0;
+      if(!num&&!showEmpty)continue;
+      const option=createOption('facility:'+facility.id,(num?'📷 ':'')+facility.label+' · '+num+' photo'+(num===1?'':'s'));
+      facilitiesGroup.append(option);
+      values.add(option.value);
+    }
+    if(facilitiesGroup.children.length)items.push(facilitiesGroup);
+    select.replaceChildren(...items);
+    // A selected building can become empty when its last local photo is deleted.
+    // If hidden, return to All locations instead of silently showing a stale filter.
+    select.value=values.has(previous)?previous:'all';
+    const buildingCount=summary.buildings.size;
+    const facilityCount=summary.sites.size;
+    $('gallery-location-summary').textContent=showEmpty
+      ? 'All '+buildingIds.length+' building choices available · '+buildingCount+' with photos'+(facilityCount?' · '+facilityCount+' facilities with photos':'')+'.'
+      : buildingCount+' building'+(buildingCount===1?'':'s')+' with photos'+(facilityCount?' · '+facilityCount+' facilities with photos':'')+'. Only locations with saved photos are listed.';
+  }
   async function render(){
     release();$('gallery-grid').replaceChildren();
     try{
       const all=await api.listPhotos();
       photoMap=new Map(all.map(p=>[p.id,p]));
+      refreshLocationChoices(all);
       for(const id of [...selection]){
         const photo=photoMap.get(id);
         if(!photo?.blob||!photo.blob.size)selection.delete(id);
@@ -206,6 +272,7 @@
   }
   function init(dependencies){
     api=dependencies;
+    $('gallery-show-empty').addEventListener('change',()=>void render());
     $('gallery-select-visible').addEventListener('click',selectVisible);
     $('gallery-clear-selection').addEventListener('click',clear);
     $('gallery-share').addEventListener('click',share);
@@ -217,5 +284,5 @@
     });
     refreshSelection();
   }
-  root.WC_GALLERY_BULK={init,render,release,toggle,isSelected:id=>selection.has(id)};
+  root.WC_GALLERY_BULK={init,render,release,toggle,isSelected:id=>selection.has(id),summarizeLocations};
 })(window);
