@@ -1,9 +1,9 @@
 /* Work Camera shell cache only. IndexedDB photo blobs are never touched by updates. */
-const CACHE_NAME='work-camera-shell-v3.10.0';
+const CACHE_NAME='work-camera-shell-v3.10.1';
 const OWN_CACHE_PREFIX='work-camera-shell-';
 const APP_ASSETS=[
-  './','./index.html','./styles.css?v=3.10.0','./app.js?v=3.10.0',
-  './photo-naming.js?v=3.10.0','./local-backup.js?v=3.10.0','./gallery-bulk.js?v=3.10.0','./apartment-lookup.js?v=3.10.0','./data/apartments.js?v=3.10.0',
+  './','./index.html','./styles.css?v=3.10.1','./app.js?v=3.10.1',
+  './photo-naming.js?v=3.10.1','./local-backup.js?v=3.10.1','./gallery-bulk.js?v=3.10.1','./apartment-lookup.js?v=3.10.1','./data/apartments.js?v=3.10.1',
   './manifest.webmanifest','./icons/icon-192.png','./icons/icon-512.png'
 ];
 self.addEventListener('install',event=>{

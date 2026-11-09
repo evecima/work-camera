@@ -147,10 +147,7 @@ async function main(){
   get('gallery-share').click();
   await Promise.resolve();
   assert.equal(shared.files.length,1,'Single-photo share must contain one original');
-  assert.match(shared.title,/Building 3544 \/ Boiler Room · \d{4}-\d\d-\d\d \d\d:\d\d:\d\d/,'Shared title should include location and exact time rather than generic Work Camera photo');
-  assert.match(shared.text,/📍 Building 3544 \/ Boiler Room/);
-  assert.match(shared.text,/Building_3544_Boiler_Room/);
-  assert(!shared.title.includes('Work Camera photo'),'Generic title must no longer be sent');
+  assert.deepEqual(Object.keys(shared),['files'],'Sharing must contain only the image file — no text or title messages');
   get('gallery-copy-details').click();
   await new Promise(resolve=>setImmediate(resolve));
   assert.match(copied,/Building 3544 \/ Boiler Room/,'Copy details must include location');
@@ -168,9 +165,7 @@ async function main(){
   get('gallery-share').click();
   await Promise.resolve();
   assert.equal(shared.files.length,2,'Bulk share must send both selected image files');
-  assert.match(shared.title,/^2 photos · Building 3544 \/ Boiler Room$/,'Sharing multiple photos must indicate their common location');
-  assert.match(shared.text,/1\. Building 3544 \/ Boiler Room/);
-  assert.match(shared.text,/2\. Building 3544 \/ Boiler Room/);
+  assert.deepEqual(Object.keys(shared),['files'],'Multi-share must not generate an additional text message');
   assert.equal(new Set(shared.files.map(file=>file.name)).size,2,'Multiple shared images must have distinct names');
   get('gallery-download').click();
   await new Promise(resolve=>setImmediate(resolve));
