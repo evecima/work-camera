@@ -1,4 +1,4 @@
-# Work Camera V3.10 — private, local-only iPhone photo library
+# Work Camera V3.10.1 — private, local-only iPhone photo library
 
 **Independent PWA. Apartment Finder (`evecima/gb-af-tool`) remains unchanged.** Live app: https://evecima.github.io/work-camera/
 
@@ -47,16 +47,15 @@ The app derives virtual folders from photo location metadata already stored in I
 - If the last photo from a selected building is removed while empty entries are hidden, the gallery returns to `All locations` rather than leaving an invalid filter. `Select visible` continues to select only displayed photos; existing multi-selection across filters remains intact.
 - Opening **My Photos** after taking new photos refreshes the counts. No thumbnails are altered, photo blobs are not changed, and IndexedDB schema stays at its original version.
 
-## WhatsApp photo captions (v3.10)
+## Sharing a single named photo without extra text (v3.10.1)
 
-The iOS share sheet shows the original file name, but WhatsApp usually displays shared pictures as **inline media** and may not show the filename. Previously the iOS Web Share payload included the generic title `Work Camera photo`, which WhatsApp displayed as the photo caption.
+The previous share implementation (v3.10.0) passed **image file + title + text** to the iOS share sheet. WhatsApp and Messages can turn that into **two chat bubbles**: a text message containing the location and time plus an image. That does not meet the user’s intent.
 
-The **Share** action now supplies:
-- An identifying `title` containing building, area/apartment and saved date/time for a **single** picture; multiple pictures receive a summary with count and common location (when available).
-- A readable `text` description including location, date/time and the unique descriptive filename (or a numbered list for multi-photo sharing).
-- The same original image file(s) with their descriptive names as before.
+The **Share** action now calls the Web Share API with **only the named JPEG/HEIC file(s)**, never an extra automatic title or text. The original descriptive filename (building, area/apt, recorded date/time and unique ID) remains attached to the `File` given to iOS. Work Camera does not alter existing photo blobs or backups.
 
-**Receiving applications decide whether to use the supplied title/text.** WhatsApp may use one field, both, or neither. For guaranteed visible context in a chat, My Photos' new **Copy location + date + time** button copies selected photo details to the clipboard so you can paste them into WhatsApp as a separate message or caption. If you need to **preserve the exact filename** as an attachment, export via **Download** → **Save to Files** and send it in WhatsApp as **Document → Choose from Files**; a document normally displays its filename instead of a full-size inline photo preview. Do not confuse ordinary photo sharing with document sharing. No images are uploaded by Work Camera.
+**Limitation:** WhatsApp and Apple Messages control presentation of inline image attachments and may hide or replace the image filename, and can rewrite file metadata. Work Camera cannot force the filename to appear in image previews or on the receiving device’s image information screen. To prioritize filename integrity, export the image to **Files** and send it as a document/attachment where the receiving app supports document sending, or use ZIP for a more reliably named transfer. Sending as an ordinary photo prioritizes inline previews and may not preserve the filename. No second bubble is created by Work Camera’s share payload.
+
+An optional **Copy location + date + time** control remains available but **never sends a message automatically**. It only copies text when the user deliberately taps it.
 
 ## Descriptive photo names when sharing and exporting
 
