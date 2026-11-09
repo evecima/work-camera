@@ -32,4 +32,17 @@ assert.notEqual(naming.photoFileName(boiler),naming.photoFileName(another),'Two 
 assert(!/[\\/:*?"<>|]/.test(naming.photoFileName(apartment)),'Export names must be safe for Windows/macOS/iOS');
 assert.equal(boiler.filename,'IMG_001.JPG','Naming never mutates the original filename');
 assert.equal(boiler.location.path,'Building 3544 / Boiler Room','Naming never changes location metadata');
+const caption=naming.sharePayload([boiler]);
+assert.equal(caption.title,'Building 3544 / Boiler Room · 2026-11-08 19:10:23');
+assert.match(caption.text,/Building 3544 \/ Boiler Room/);
+assert.match(caption.text,/2026-11-08 19:10:23/);
+assert.match(caption.text,/Building_3544_Boiler_Room_2026-11-08_19-10-23_abc123def456\.jpg/);
+assert.equal(naming.sharePayload([apartment]).title,'Building 3525 / Apt 22C · 2026-11-08 19:10:23');
+assert.equal(naming.sharePayload([photo('school1',{group:'facilities',facility:'school',path:'3613 - Montessori School'})]).title,'3613 - Montessori School · 2026-11-08 19:10:23');
+const multi=naming.sharePayload([boiler,another,apartment]);
+assert.equal(multi.title,'3 photos · 2 locations');
+assert.match(multi.text,/1\. Building 3544 \/ Boiler Room/);
+assert.match(multi.text,/3\. Building 3525 \/ Apt 22C/);
+assert(!multi.title.includes('Work Camera photo'),'Never send the generic WhatsApp caption');
+
 console.log('PASS: Descriptive exported names for apartments, boiler, hallways, facilities, date, local time, file type and unique ID');
