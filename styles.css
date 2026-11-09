@@ -122,3 +122,17 @@ label:not(.file-button){display:block;color:#a9bad0;font-size:11px;font-weight:8
 .gallery-show-empty-label input{accent-color:#3386dd;width:19px;height:19px;flex:none;margin:0}
 #gallery-location-summary{flex:1 1 100%;font-size:11px;color:#a6bed6;line-height:1.5;margin:0}
 #gallery-filter option{color:var(--text)}
+
+/* V3.8 — compact nested photo folders in My Photos */
+.gallery-folder-bar{display:flex;align-items:center;gap:10px;min-width:0;margin:2px 0 14px;padding:11px 0 12px;border-bottom:1px solid var(--border)}
+.gallery-folder-bar .btn{flex:none;padding:10px 12px;white-space:nowrap;font-size:13px}
+.gallery-folder-bar .btn[hidden]{display:none!important}
+.gallery-folder-path{flex:1;min-width:0;font-size:12px;color:#b9d5ef;line-height:1.55;overflow-wrap:anywhere}
+.gallery-folder{grid-column:1/-1;width:100%;border:1px solid #476684;border-radius:13px;background:#203951;min-height:83px;padding:15px 14px;display:flex;align-items:center;gap:14px;text-align:left;color:var(--text);cursor:pointer;box-shadow:0 2px 8px #07132133}
+.gallery-folder:hover,.gallery-folder:focus-visible{border-color:#8ac9ff;background:#284c70}
+.gallery-folder:focus-visible{outline:3px solid #a1d8ff;outline-offset:3px}
+.gallery-folder-icon{font-size:31px;line-height:1;flex:none;width:38px;text-align:center}
+.gallery-folder-info{display:flex;flex-direction:column;gap:5px;flex:1;min-width:0}
+.gallery-folder-info strong{font-size:16px;line-height:1.4;overflow-wrap:anywhere}
+.gallery-folder-info small{font-size:12px;color:#b4cfe6;line-height:1.5}
+.gallery-folder-chevron{font-size:30px;color:#cce4fa;line-height:1;flex:none;padding:0 3px}
