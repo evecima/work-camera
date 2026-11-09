@@ -344,10 +344,10 @@
         notice('This device cannot share all selected files directly. Try fewer photos or use Download for a ZIP.',true);
         return;
       }
-      // WhatsApp can display the share TITLE as its photo caption, not the actual file name.
-      // Provide both a meaningful title and full text; a share target may choose either or ignore them.
-      const details=root.WC_PHOTO_NAMING.sharePayload(photos);
-      const result=navigator.share({files,title:details.title,text:details.text});
+      // Share ONLY the original image file(s). Supplying title or text causes
+      // WhatsApp/Messages to send a separate text bubble, which the user does not want.
+      // The receiving app may still choose to hide an attachment's filename.
+      const result=navigator.share({files});
       Promise.resolve(result).then(()=>notice('Sharing flow finished. Your originals remain in Work Camera.'))
         .catch(error=>{if(error?.name!=='AbortError')notice('Could not share: '+(error?.message||error),true);});
     }catch(error){notice('Could not open sharing: '+(error?.message||error),true);}
