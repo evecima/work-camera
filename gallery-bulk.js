@@ -43,6 +43,7 @@
     $('gallery-select-visible').disabled=busy||visibleIds.length===0||visibleIds.every(id=>selection.has(id));
     $('gallery-clear-selection').disabled=busy||count===0;
     for(const id of ['gallery-share','gallery-download','gallery-delete'])$(id).disabled=busy||count===0;
+    $('gallery-copy-details').disabled=busy||count===0;
     $('gallery-save-zip').disabled=busy||!preparedZip;
     $('gallery-discard-zip').disabled=busy;
   }
@@ -343,10 +344,28 @@
         notice('This device cannot share all selected files directly. Try fewer photos or use Download for a ZIP.',true);
         return;
       }
-      const result=navigator.share({files,title:photos.length===1?'Work Camera photo':'Work Camera photos'});
+      // WhatsApp can display the share TITLE as its photo caption, not the actual file name.
+      // Provide both a meaningful title and full text; a share target may choose either or ignore them.
+      const details=root.WC_PHOTO_NAMING.sharePayload(photos);
+      const result=navigator.share({files,title:details.title,text:details.text});
       Promise.resolve(result).then(()=>notice('Sharing flow finished. Your originals remain in Work Camera.'))
         .catch(error=>{if(error?.name!=='AbortError')notice('Could not share: '+(error?.message||error),true);});
     }catch(error){notice('Could not open sharing: '+(error?.message||error),true);}
+  }
+  async function copyDetails(){
+    if(busy)return;
+    const photos=selectedPhotos();if(!photos.length)return;
+    if(!root.WC_PHOTO_NAMING){notice('Photo naming unavailable.',true);return;}
+    const text=root.WC_PHOTO_NAMING.sharePayload(photos).text;
+    try{
+      if(!navigator.clipboard?.writeText)throw new Error('Clipboard unavailable');
+      await navigator.clipboard.writeText(text);
+      notice('Location, date, time and filename copied. Paste into WhatsApp if the app omits the photo caption.');
+    }catch(error){
+      // Read-only fallback; the user can manually copy the prepared description.
+      prompt('Copy these photo details and paste them into WhatsApp:',text);
+      notice('Details ready to copy. WhatsApp may not preserve captions supplied by another app.');
+    }
   }
   async function prepareDownload(){
     if(busy)return;
@@ -413,6 +432,7 @@
     $('gallery-select-visible').addEventListener('click',selectVisible);
     $('gallery-clear-selection').addEventListener('click',clear);
     $('gallery-share').addEventListener('click',share);
+    $('gallery-copy-details').addEventListener('click',()=>void copyDetails());
     $('gallery-download').addEventListener('click',()=>void prepareDownload());
     $('gallery-delete').addEventListener('click',()=>void deleteSelected());
     $('gallery-save-zip').addEventListener('click',saveZip);
