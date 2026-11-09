@@ -13,6 +13,7 @@ jobs:
       - name: Verify JS syntax
         run: |
           node --check app.js
+          node --check gallery-bulk.js
           node --check local-backup.js
           node --check service-worker.js
       - name: Validate catalog and local backup ZIP
