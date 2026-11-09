@@ -43,10 +43,25 @@ async function test(){
   assert(!html.includes('src="onedrive.js"'),'No cloud connector should run');
   assert(html.includes('id="file-camera"')&&html.includes('capture="environment"'),'System camera capture required');
   assert(html.includes('id="file-import"'),'Manual import path is required for advanced Apple Camera shots');
-  assert(html.includes('id="share-photo"')&&html.includes('id="delete-photo"'),'Photo details require Share and Delete');
+  for(const id of ['gallery-share','gallery-download','gallery-delete','gallery-select-visible','gallery-clear-selection','gallery-save-zip','gallery-selection-actions','select-preview-photo'])
+    assert(html.includes('id="'+id+'"'),'Missing gallery action: '+id);
+  assert(!html.includes('id="share-photo"')&&!html.includes('id="delete-photo"'),'Bulk actions should replace the old per-photo action buttons');
   assert(!html.includes('id="camera-video"'),'Remove custom getUserMedia camera viewfinder');
   const app=fs.readFileSync(path.join(__dirname,'../app.js'),'utf8');
-  assert(app.includes("navigator.share({files:[file]"),'Share button must invoke native file share');
+  const bulk=fs.readFileSync(path.join(__dirname,'../gallery-bulk.js'),'utf8');
+  assert(bulk.includes('navigator.share({files,title:'),'Multi-file Share button must use iPhone share sheet');
+  const bulkContext={window:{},document:{}};
+  vm.runInNewContext(bulk,bulkContext);
+  assert(typeof bulkContext.window.WC_GALLERY_BULK?.init==='function','Bulk gallery module must export initialization');
+  assert(typeof bulkContext.window.WC_GALLERY_BULK?.render==='function','Bulk gallery module must export renderer');
+  assert(bulk.includes("tile.addEventListener('click',()=>toggle(photo.id))"),'Tapping a thumbnail must select rather than preview');
+  assert(bulk.includes("preview.addEventListener('click',()=>api.showDetails(photo))"),'Preview button must open photo details');
+  assert(bulk.includes('root.WC_BACKUP.makeZip(photos)'),'Multiple downloads must produce an offline ZIP');
+  assert(bulk.includes("prompt('Type DELETE"),'Batch delete must demand typed confirmation');
+  assert(bulk.includes('photos.filter(p=>!p.backupVerifiedAt)'),'Unverified photos require a specific warning');
+  assert(bulk.includes("store.delete(photo.id)"),'Batch delete must target only explicitly selected records');
+  assert(!bulk.includes('indexedDB.deleteDatabase('),'Never destroy the photo database');
+  assert(html.indexOf('gallery-bulk.js?v=3.5.0')<html.indexOf('app.js?v=3.5.0'),'Gallery module must load before app');
   assert(app.includes("$('file-camera').click()"),'Location confirmation should launch system capture immediately');
   const nativeCaptureHandler=app.slice(app.indexOf("$('open-camera').addEventListener"),app.indexOf("$('open-continuous').addEventListener"));
   assert(!nativeCaptureHandler.includes('getUserMedia'),'Native mode must not start the web camera');
@@ -58,20 +73,21 @@ async function test(){
   const captureSave = app.slice(app.indexOf('async function saveBlob('),app.indexOf('function releaseUrls('));
   assert(captureSave.includes('await addPhoto(blob,filename)'),'Accepted capture must be saved');
   assert(!captureSave.includes('showDetails('),'Saving a capture must not automatically open Photo Details');
-  assert(app.includes("tile.addEventListener('click',()=>showDetails(p))"),'Tapping a gallery photo should still open Photo Details');
+  assert(app.includes("window.WC_GALLERY_BULK.render()"),'Main app must delegate gallery rendering to multi-select module');
   assert(html.includes('Review saved pictures in My Photos.'),'User instructions must preserve gallery-only details');
   assert(html.includes('id="runtime-version"')&&html.includes('id="refresh-app"'),'In-app version and update control must be visible');
   for(const script of ['app.js','local-backup.js','data/apartments.js'])
-    assert(html.includes(script+'?v=3.4.0'),'Versioned JS needed: '+script);
-  assert(html.includes('styles.css?v=3.4.0'),'Versioned CSS required');
-  assert(app.includes("const APP_VERSION='3.4.0'"),'Runtime build must identify the executable JS version');
+    assert(html.includes(script+'?v=3.5.0'),'Versioned JS needed: '+script);
+  assert(html.includes('styles.css?v=3.5.0'),'Versioned CSS required');
+  assert(app.includes("const APP_VERSION='3.5.0'"),'Runtime build must identify the executable JS version');
   assert(app.includes("window.location.replace(address.href)"),'Refresh should navigate without changing storage');
   assert(!app.includes('indexedDB.deleteDatabase('),'Updating must never delete the photo database');
   const worker=fs.readFileSync(path.join(__dirname,'../service-worker.js'),'utf8');
-  assert(worker.includes("work-camera-shell-v3.4.0"),'New SW version required');
+  assert(worker.includes("work-camera-shell-v3.5.0"),'New SW version required');
+  assert(worker.includes('gallery-bulk.js?v=3.5.0'),'Offline cache must contain the multi-select gallery module');
   assert(worker.includes("fetch(event.request,{cache:'no-store'})"),'Online fetch must bypass HTTP cache');
   assert(worker.includes("cache.match('./index.html')"),'Offline fallback must remain available');
   assert(!worker.includes('indexedDB'),'SW must not modify photos');
-  console.log('PASS: ZIP, original iPhone capture, opt-in continuous camera, gallery details and safe PWA updates');
+  console.log('PASS: ZIP, photo catalog, camera modes, gallery multi-select, bulk operations and safe PWA updates');
 }
 test().catch(e=>{console.error(e);process.exitCode=1;});
