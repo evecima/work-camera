@@ -82,10 +82,33 @@ async function main(){
     }),
     showDetails:p=>{previewed=p.id;},
     renderHome:async()=>{},
-    locationKey:()=> 'k1'
+    locationKey:()=> 'k1',
+    buildingIds:['3515','3544','3615'],
+    facilities:[{id:'school',label:'3613 - Montessori School'}]
   });
+  const choices=()=>get('gallery-filter').children.flatMap(node=>node.tag==='optgroup'?node.children:[node]);
+  const labelFor=value=>choices().find(node=>node.value===value)?.textContent||null;
   await bulk.render();
   assert.equal(get('photo-count').textContent,'4 photos');
+  assert.match(labelFor('all'),/3 photos/,'Counts only photo images, not legacy cloud-only records');
+  assert.match(labelFor('current'),/2 photos/,'Counts actual photos at current location');
+  assert.match(labelFor('building:3544'),/2 photos/,'Populated building shows count');
+  assert.match(labelFor('building:3615'),/1 photo/,'Office location is included');
+  assert.equal(labelFor('building:3515'),null,'Empty buildings must be hidden by default');
+  assert.equal(labelFor('facility:school'),null,'Empty facilities must be hidden by default');
+  assert.match(get('gallery-location-summary').textContent,/2 buildings with photos/);
+  get('gallery-show-empty').checked=true;
+  await bulk.render();
+  assert.match(labelFor('building:3515'),/0 photos/,'Toggle displays empty buildings');
+  assert.match(labelFor('facility:school'),/0 photos/,'Toggle displays empty facilities');
+  get('gallery-filter').value='building:3515';
+  await bulk.render();
+  assert.equal(get('gallery-filter').value,'building:3515','Selected empty building stays available when toggle is on');
+  get('gallery-show-empty').checked=false;
+  await bulk.render();
+  assert.equal(labelFor('building:3515'),null,'Switching off removes empty building');
+  assert.equal(get('gallery-filter').value,'all','If selected building becomes hidden, fall back to All locations');
+  get('gallery-filter').value='all';
   assert(!bulk.isSelected('legacy'),'Cloud-only record is not selected');
   bulk.toggle('one');
   assert(bulk.isSelected('one'),'First thumbnail should be selectable');
@@ -121,6 +144,18 @@ async function main(){
   assert(photos.some(p=>p.id==='three'),'Unselected photo must remain');
   assert(photos.some(p=>p.id==='legacy'),'Legacy entry must remain');
   assert.equal(get('gallery-selected-count').textContent,'0 selected photos');
-  console.log('PASS: Gallery selects visible images, shares only selected files, creates ZIP and protects deletion');
+  assert.equal(labelFor('building:3544'),null,'Removing the last photo hides its building automatically');
+  assert.match(labelFor('building:3615'),/1 photo/,'Unchanged building count remains');
+  const school=new Blob(['school'],{type:'image/jpeg'});
+  const counters=bulk.summarizeLocations([
+    {blob:school,location:{group:'facilities',facility:'school',key:'facility:school'}},
+    {blob:school,location:{group:'buildings',building:'3544',key:'b:3544'}},
+    {blob:null,location:{group:'buildings',building:'3515',key:'b:3515'}}
+  ],['3515','3544','3615'],[{id:'school'}]);
+  assert.equal(counters.total,2,'Only actual local images count');
+  assert.equal(counters.sites.get('school'),1,'Facility photo count is supported');
+  assert.equal(counters.buildings.get('3544'),1);
+  assert.equal(counters.buildings.has('3515'),false);
+  console.log('PASS: Populated location filters, empty toggle, live counts, selection, share, ZIP and safe deletion');
 }
 main().catch(e=>{console.error(e);process.exitCode=1;});
