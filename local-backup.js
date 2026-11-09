@@ -18,9 +18,8 @@
       ? 'Facilities/'+safe(loc.path||loc.facility)
       : safe(loc.building||'Unknown building')+'/'+safe(loc.area==='office'?'Office Lease':loc.area==='boiler'?'Boiler Room':loc.area==='apartment'?'Apartment':loc.area==='hallways'?'Hallways':loc.area==='laundry'?'Laundry Room':'Exterior')
         +(loc.area==='apartment'?'/'+safe('Apartment '+(loc.unit||'Unknown')):'');
-    const stamp=new Date(photo.createdAt||Date.now()).toISOString().replace(/[:.]/g,'-');
-    const id=safe(photo.id||'photo').slice(0,12);
-    return folder+'/'+stamp+'_'+id+'_'+safe(photo.filename||'photo.jpg');
+    if(!root.WC_PHOTO_NAMING)throw new Error('Photo naming module is unavailable.');
+    return folder+'/'+root.WC_PHOTO_NAMING.photoFileName(photo);
   }
   function dosDateTime(value){
     const d=new Date(value||Date.now());
@@ -35,7 +34,7 @@
     const manifest={
       format:'Work Camera local photo archive v1',
       exportedAt:new Date().toISOString(),
-      photos:photos.map((p,i)=>({id:p.id,path:entries[i].path,takenAt:new Date(p.createdAt).toISOString(),location:p.location.path,bytes:p.blob.size}))
+      photos:photos.map((p,i)=>({id:p.id,path:entries[i].path,exportedFilename:root.WC_PHOTO_NAMING.photoFileName(p),originalFilename:p.filename||null,recordedAtUtc:new Date(p.createdAt).toISOString(),recordedTimezoneOffsetMinutes:Number.isInteger(p.createdTimezoneOffsetMinutes)?p.createdTimezoneOffsetMinutes:null,location:p.location.path,bytes:p.blob.size}))
     };
     entries.push({path:'manifest.json',blob:new Blob([JSON.stringify(manifest,null,2)],{type:'application/json'}),time:Date.now()});
     if(entries.length>65535)throw new Error('Too many files for one ZIP archive.');
