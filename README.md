@@ -1,4 +1,4 @@
-# Work Camera V3 — private, local-only iPhone photo library
+# Work Camera V3.5 — private, local-only iPhone photo library
 
 **Independent PWA. Apartment Finder (`evecima/gb-af-tool`) remains unchanged.** Live app: https://evecima.github.io/work-camera/
 
@@ -6,7 +6,7 @@
 
 One home-screen icon named **Work Camera** opens a simple home screen:
 
-- **Take Photo** — select a building, apartment/area or facility. Choose **iPhone Camera · One photo** for the familiar iOS system capture interface (it necessarily returns to Work Camera after **Use Photo**); or **Continuous Camera · Several photos** for a live in-app viewfinder that remains open between shots. The app remembers the location and saves each accepted image locally. Photo Details appear only after tapping a saved image in **My Photos**.
+- **Take Photo** — select a building, apartment/area or facility. Choose **iPhone Camera · One photo** for the familiar iOS system capture interface (it necessarily returns to Work Camera after **Use Photo**); or **Continuous Camera · Several photos** for a live in-app viewfinder that remains open between shots. The app remembers the location and saves each accepted image locally. Photo Details appear only when using the small **eye (View)** button on a saved image in **My Photos**; tapping its thumbnail instead selects or deselects it.
 - **Continuous Camera limitations** — uses `getUserMedia()` / canvas JPEG capture, not Apple's full Camera app. Image resolution depends on the iPhone/browser stream and may be lower than native HEIC photos; flash, portrait, Apple image processing and all native controls are not guaranteed. Switch back to iPhone Camera whenever native photo quality or controls matter. Camera permission may be required; the continuous session closes on exit/background.
 - **My Photos** — tap photo thumbnails to select one or many; the selected photos show a checkmark. **Select visible** selects all photos in the currently displayed filter, while selection remains active across filter changes. **Clear** resets it. A small eye button opens a read-only full-size preview; Photo Details no longer hosts individual Share/Download/Delete actions. Instead use the selection toolbar: **Share** uses the iOS sheet to send original images, **Download** saves one original or prepares a location-organized ZIP for several (tap **Save ZIP** when ready), **Delete** permanently removes only selected records after explicit confirmation and typing `DELETE`.
 - **Weekly Backup** — create a ZIP of original photos sorted into folders; copy it to a computer, open and inspect it, explicitly confirm the backup, and only then unlock the delete-verified option.
