@@ -89,7 +89,7 @@ async function main(){
   const choices=()=>get('gallery-filter').children.flatMap(node=>node.tag==='optgroup'?node.children:[node]);
   const labelFor=value=>choices().find(node=>node.value===value)?.textContent||null;
   await bulk.render();
-  assert.equal(get('photo-count').textContent,'4 photos');
+  assert.equal(get('photo-count').textContent,'3 photos','Count only actual photos');
   assert.match(labelFor('all'),/3 photos/,'Counts only photo images, not legacy cloud-only records');
   assert.match(labelFor('current'),/2 photos/,'Counts actual photos at current location');
   assert.match(labelFor('building:3544'),/2 photos/,'Populated building shows count');
@@ -109,16 +109,48 @@ async function main(){
   assert.equal(labelFor('building:3515'),null,'Switching off removes empty building');
   assert.equal(get('gallery-filter').value,'all','If selected building becomes hidden, fall back to All locations');
   get('gallery-filter').value='all';
+  const folders=()=>get('gallery-grid').children.filter(n=>n.className==='gallery-folder');
+  const open=async(kind,id)=>{
+    const f=folders().find(node=>node.dataset.folderKind===kind&&node.dataset.folderId===id);
+    assert(f,'Expected folder '+kind+'/'+id);
+    f.click();
+    await new Promise(resolve=>setTimeout(resolve,5));
+  };
+  const back=async()=>{
+    get('gallery-folder-back').click();
+    await new Promise(resolve=>setTimeout(resolve,5));
+  };
+  await bulk.render();
+  assert.equal(get('gallery-grid').querySelectorAll('.photo-tile[data-photo-id]').length,0,'Root shows folders, not images');
+  assert(folders().some(n=>n.dataset.folderId==='3544'),'Root must contain Building 3544');
+  assert(folders().some(n=>n.dataset.folderId==='3615'),'Root must contain 3615 Leasing Office');
+  assert.equal(get('gallery-select-visible').disabled,true,'No selecting invisible photos from folder level');
+  await open('building','3544');
+  assert(folders().some(n=>n.dataset.folderId==='boiler'),'Building displays Boiler Room area folder');
+  assert.equal(get('gallery-grid').querySelectorAll('.photo-tile[data-photo-id]').length,0,'Area level does not pre-render images');
+  await open('area','boiler');
+  assert.equal(get('gallery-grid').querySelectorAll('.photo-tile[data-photo-id]').length,2,'Only selected area reveals photos');
+  assert.match(get('gallery-folder-path').textContent,/Building 3544 \/ Boiler Room/);
+  const selectedTile=get('gallery-grid').querySelectorAll('.photo-tile[data-photo-id]').find(n=>n.dataset.photoId==='one');
+  selectedTile.click();
+  assert(bulk.isSelected('one'),'Tapping a displayed thumbnail must select it');
+  const firstCell=get('gallery-grid').children.find(n=>n.className==='photo-cell');
+  firstCell.children.find(n=>n.className==='photo-preview-button').click();
+  assert(previewed==='one'||previewed==='two','Eye button previews without changing the selection');
+  assert(bulk.isSelected('one'),'Preview should not deselect the photo');
+  await back();
+  assert(folders().some(n=>n.dataset.folderId==='boiler'),'Back returns to area folders');
+  await back();
+  assert(folders().some(n=>n.dataset.folderId==='3544'),'Second Back returns to buildings');
   assert(!bulk.isSelected('legacy'),'Cloud-only record is not selected');
-  bulk.toggle('one');
-  assert(bulk.isSelected('one'),'First thumbnail should be selectable');
   get('gallery-share').click();
   await Promise.resolve();
   assert.equal(shared.files.length,1,'Single-photo share must contain one original');
   get('gallery-clear-selection').click();
   assert(!bulk.isSelected('one'));
   get('gallery-filter').value='current';
-  await bulk.render();
+  bulk.changedFilter();
+  await new Promise(resolve=>setTimeout(resolve,5));
   get('gallery-select-visible').click();
   assert(bulk.isSelected('one')&&bulk.isSelected('two'));
   assert(!bulk.isSelected('three'),'Only visible matching images selected');
@@ -156,6 +188,34 @@ async function main(){
   assert.equal(counters.sites.get('school'),1,'Facility photo count is supported');
   assert.equal(counters.buildings.get('3544'),1);
   assert.equal(counters.buildings.has('3515'),false);
-  console.log('PASS: Populated location filters, empty toggle, live counts, selection, share, ZIP and safe deletion');
+  // Verify the full Building -> Apartments -> Apt number -> Photos hierarchy with synthetic metadata.
+  const image=new Blob(['image'],{type:'image/jpeg'});
+  const fake=[
+    {id:'apt1',blob:image,createdAt:10,location:{group:'buildings',building:'3525',area:'apartment',unit:'22C'}},
+    {id:'apt2',blob:image,createdAt:9,location:{group:'buildings',building:'3525',area:'apartment',unit:'22C'}},
+    {id:'apt3',blob:image,createdAt:8,location:{group:'buildings',building:'3525',area:'apartment',unit:'23A'}},
+    {id:'hall1',blob:image,createdAt:7,location:{group:'buildings',building:'3525',area:'hallways'}},
+    {id:'boiler1',blob:image,createdAt:6,location:{group:'buildings',building:'3544',area:'boiler'}},
+    {id:'school1',blob:image,createdAt:5,location:{group:'facilities',facility:'school'}}
+  ];
+  const root=bulk.folderPlan(fake,'all',[],[{id:'school',label:'Montessori School'}]);
+  assert.deepEqual(root.folders.map(f=>f.kind+':'+f.id),['building:3525','building:3544','facility:school']);
+  const areas=bulk.folderPlan(fake,'building:3525',[],[]);
+  assert.deepEqual(areas.folders.map(f=>f.id),['apartment','hallways']);
+  assert.equal(areas.folders[0].count,3);
+  assert.match(areas.folders[0].sublabel,/2 apartments/);
+  const apartments=bulk.folderPlan(fake,'building:3525',[{kind:'area',id:'apartment'}],[]);
+  assert.deepEqual(apartments.folders.map(f=>f.id),['22C','23A']);
+  assert.deepEqual(apartments.folders.map(f=>f.count),[2,1]);
+  const apt22C=bulk.folderPlan(fake,'building:3525',[{kind:'area',id:'apartment'},{kind:'unit',id:'22C'}],[]);
+  assert.equal(apt22C.kind,'photos');
+  assert.deepEqual(apt22C.photos.map(p=>p.id),['apt1','apt2']);
+  const hall=bulk.folderPlan(fake,'building:3525',[{kind:'area',id:'hallways'}],[]);
+  assert.deepEqual(hall.photos.map(p=>p.id),['hall1']);
+  const facility=bulk.folderPlan(fake,'all',[{kind:'facility',id:'school'}],[{id:'school',label:'Montessori School'}]);
+  assert.deepEqual(facility.photos.map(p=>p.id),['school1']);
+  const legacy=bulk.folderPlan([...fake,{id:'no-blob',blob:null,location:{group:'buildings',building:'3525',area:'apartment',unit:'22C'}}],'building:3525',[{kind:'area',id:'apartment'},{kind:'unit',id:'22C'}],[]);
+  assert.equal(legacy.photos.length,2,'Metadata-only records should not inflate photo counts');
+  console.log('PASS: Nested folders, back navigation, leaf-only photo selection, counts, bulk share, ZIP and delete');
 }
 main().catch(e=>{console.error(e);process.exitCode=1;});
