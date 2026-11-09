@@ -100,6 +100,9 @@ async function main(){
   assert(bulk.isSelected('one')&&bulk.isSelected('two'));
   assert(!bulk.isSelected('three'),'Only visible matching images selected');
   assert(!bulk.isSelected('legacy'),'Legacy record without image must be excluded');
+  get('gallery-share').click();
+  await Promise.resolve();
+  assert.equal(shared.files.length,2,'Bulk share must send both selected image files');
   get('gallery-download').click();
   await new Promise(resolve=>setImmediate(resolve));
   assert.equal(zipCount,2,'Two selected photos are included in ZIP');
