@@ -1,4 +1,4 @@
-# Work Camera V3.8 — Deploy and iPhone acceptance checklist
+# Work Camera V3.9 — Deploy and iPhone acceptance checklist
 
 ## Deployment
 
@@ -13,16 +13,18 @@ No Azure, OneDrive or Apple Developer configuration is required for the local-on
 
 1. Open the public URL using **Safari** on the iPhone.
 2. Use the Share menu to **Add to Home Screen**. Keep exactly one icon named **Work Camera**.
-3. Open the installed app and check that Home shows **Take Photo** and **My Photos** and **Running version: V3.8.0**. If it does not, keep your photographs and troubleshoot the stale application cache without uninstalling.
+3. Open the installed app and check that Home shows **Take Photo** and **My Photos** and **Running version: V3.9.0**. If it does not, keep your photographs and troubleshoot the stale application cache without uninstalling.
 4. In **Choose location → Buildings**, under the Building selector, enter `422` (or `422A`) in **Find Apartment Directly**. Tap the matching **Apt 422A — Building 3544** row. Check that Building, Area=Apartment, apartment dropdown and photo destination all update. Repeat with `166`, expected Building 3695 / Apt 166A. Enter `999` or `422B` and confirm no building is invented. Changing the Building manually must still work and reset the quick search.
 5. Choose a harmless test location and tap **iPhone Camera · One photo**. Capture and accept a photo; verify you return to the Work Camera capture page without Photo Details. Then try **Continuous Camera · Several photos**: grant permission, take three shots, verify the viewfinder stays open and close it.
 6. In **My Photos**, verify **All locations** shows building folders instead of thumbnails. Open a building, then **Boiler Room** or **Hallways**, and verify only photos from that area appear. Use **← Back** to return to the categories, then the buildings. For an apartment building, open **Apartments → Apt 22C → photos** (or an apartment with real test photos) and check photo counts at each level. Check **Select visible** is disabled on folder listings and only selects images inside the opened photo folder. Then open the location selector. By default, confirm that only buildings/facilities with actual photos are shown, each with a count, plus All locations and Current location. Toggle **Show empty buildings** to display zero-photo buildings as well. Toggle off to hide them again. Confirm Take Photo still lists all buildings. Then tap two or more thumbnails and check their selection rings. Use the eye button to preview without changing selection. Try **Select visible**, **Clear**, and switching filters while keeping selections.
-7. Tap **Share** from the selection toolbar. Send harmless images to your own compatible target (Messages, Mail or AirDrop), if supported. If sharing a group is unsupported, select fewer photos.
-8. Tap **Download** for several selected photos, then **Save ZIP**; confirm the ZIP contains originals organized by building / area, plus `manifest.json`. Single selected images download in their original format. Test **Import from Photos** separately using a harmless image (which remains in the iPhone's personal Photos app).
+7. Tap **Share** from the selection toolbar. Verify each attached original image uses a descriptive filename containing the building/facility, area or apartment, date and hour (with a short ID). The destination app may still rename the attachment. Repeat with a single image, then several. Send harmless images to your own compatible target (Messages, Mail or AirDrop), if supported. If sharing a group is unsupported, select fewer photos.
+8. Tap **Download** for several selected photos, then **Save ZIP**; check that every JPEG/HEIC image entry in the ZIP has its descriptive filename and that `manifest.json` records `originalFilename`, `exportedFilename` and UTC date. Repeat with a single photo to validate its descriptive download filename. confirm the ZIP contains originals organized by building / area, plus `manifest.json`. Single selected images download in their original format. Test **Import from Photos** separately using a harmless image (which remains in the iPhone's personal Photos app).
 9. For **Delete**, use disposable test photos only: verify that the app warns about unbacked-up photos and demands typing **DELETE**. Do not delete irreplaceable images.
 10. Put the phone into Airplane Mode and reopen the installed app. Test browsing the library and continuous camera offline. The service worker needs one initial online installation.
 11. In **Weekly Backup**, press **Prepare ZIP**, then **Save / Share ZIP**; transfer the archive to your computer and inspect all photos.
 12. Only after computer verification, check the backup confirmation box and press **Confirm verified batch**. Test the separate **Delete verified local photos** flow on disposable images only.
+
+**Important**: Saved photo timestamps reflect when Work Camera registered the picture; imported photos may have been taken earlier. Pre-V3.9 photos without saved timezone offsets use the device's local timezone for exported filenames. Always verify an export before removing photos.
 
 **Critical**: this is an iOS PWA. IndexedDB can be evicted or deleted; transferring pictures weekly reduces but does not eliminate loss risk between exports. Export critical photos promptly. An installed PWA can use storage separate from Safari, so inspect existing devices/app icons before replacing one.
 
