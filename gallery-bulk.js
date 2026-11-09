@@ -12,6 +12,8 @@
   function notice(message,error=false){
     $('gallery-action-message').textContent=message;
     $('gallery-action-message').classList.toggle('error',error);
+    $('gallery-action-toast').textContent=message;
+    $('gallery-action-toast').classList.toggle('error',error);
   }
   function release(){
     thumbnails.splice(0).forEach(url=>URL.revokeObjectURL(url));
