@@ -11,8 +11,8 @@
   <meta name="description" content="Offline maintenance camera and private on-device photo library">
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="apple-touch-icon" href="icons/icon-192.png">
-  <link rel="stylesheet" href="styles.css?v=3.6.0">
-  <title>Work Camera V3.6 — Quick Apartment Lookup</title>
+  <link rel="stylesheet" href="styles.css?v=3.7.0">
+  <title>Work Camera V3.7 — Photos by Location</title>
 </head>
 <body>
 <div id="app" class="shell">
@@ -107,6 +107,10 @@
     <section id="view-gallery" class="view" aria-labelledby="gallery-title">
       <div class="section-heading"><h2 id="gallery-title">My Photos</h2><p>Tap photos to select several. Use the eye icon to view one larger.</p></div>
       <div class="gallery-toolbar"><select id="gallery-filter" aria-label="Filter gallery"><option value="all">All locations</option><option value="current">Current location</option></select><span id="photo-count">0 photos</span></div>
+      <div class="gallery-location-options">
+        <label class="gallery-show-empty-label" for="gallery-show-empty"><input id="gallery-show-empty" type="checkbox"> Show empty buildings</label>
+        <p id="gallery-location-summary" aria-live="polite">Checking buildings with photos…</p>
+      </div>
       <div class="gallery-selection-tools">
         <button type="button" class="btn btn-secondary" id="gallery-select-visible">Select visible</button>
         <button type="button" class="btn btn-secondary" id="gallery-clear-selection">Clear</button>
@@ -178,10 +182,10 @@
   <img id="detail-image" alt="Work photo preview"><div id="detail-info"></div>
   <div class="dialog-actions"><button id="select-preview-photo" class="btn btn-primary" type="button">✓ Select photo</button></div><p class="hint">Select one or more photos in My Photos to share, download or delete them together.</p></div>
 </dialog>
-<script src="data/apartments.js?v=3.6.0"></script>
-<script src="local-backup.js?v=3.6.0" defer></script>
-<script src="gallery-bulk.js?v=3.6.0" defer></script>
-<script src="apartment-lookup.js?v=3.6.0" defer></script>
-<script src="app.js?v=3.6.0" defer></script>
+<script src="data/apartments.js?v=3.7.0"></script>
+<script src="local-backup.js?v=3.7.0" defer></script>
+<script src="gallery-bulk.js?v=3.7.0" defer></script>
+<script src="apartment-lookup.js?v=3.7.0" defer></script>
+<script src="app.js?v=3.7.0" defer></script>
 </body>
 </html>
