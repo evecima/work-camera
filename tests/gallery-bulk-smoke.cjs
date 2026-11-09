@@ -199,21 +199,21 @@ async function main(){
     {id:'school1',blob:image,createdAt:5,location:{group:'facilities',facility:'school'}}
   ];
   const root=bulk.folderPlan(fake,'all',[],[{id:'school',label:'Montessori School'}]);
-  assert.deepEqual(root.folders.map(f=>f.kind+':'+f.id),['building:3525','building:3544','facility:school']);
+  assert.deepEqual(Array.from(root.folders,f=>f.kind+':'+f.id),['building:3525','building:3544','facility:school']);
   const areas=bulk.folderPlan(fake,'building:3525',[],[]);
-  assert.deepEqual(areas.folders.map(f=>f.id),['apartment','hallways']);
+  assert.deepEqual(Array.from(areas.folders,f=>f.id),['apartment','hallways']);
   assert.equal(areas.folders[0].count,3);
   assert.match(areas.folders[0].sublabel,/2 apartments/);
   const apartments=bulk.folderPlan(fake,'building:3525',[{kind:'area',id:'apartment'}],[]);
-  assert.deepEqual(apartments.folders.map(f=>f.id),['22C','23A']);
-  assert.deepEqual(apartments.folders.map(f=>f.count),[2,1]);
+  assert.deepEqual(Array.from(apartments.folders,f=>f.id),['22C','23A']);
+  assert.deepEqual(Array.from(apartments.folders,f=>f.count),[2,1]);
   const apt22C=bulk.folderPlan(fake,'building:3525',[{kind:'area',id:'apartment'},{kind:'unit',id:'22C'}],[]);
   assert.equal(apt22C.kind,'photos');
-  assert.deepEqual(apt22C.photos.map(p=>p.id),['apt1','apt2']);
+  assert.deepEqual(Array.from(apt22C.photos,p=>p.id),['apt1','apt2']);
   const hall=bulk.folderPlan(fake,'building:3525',[{kind:'area',id:'hallways'}],[]);
-  assert.deepEqual(hall.photos.map(p=>p.id),['hall1']);
+  assert.deepEqual(Array.from(hall.photos,p=>p.id),['hall1']);
   const facility=bulk.folderPlan(fake,'all',[{kind:'facility',id:'school'}],[{id:'school',label:'Montessori School'}]);
-  assert.deepEqual(facility.photos.map(p=>p.id),['school1']);
+  assert.deepEqual(Array.from(facility.photos,p=>p.id),['school1']);
   const legacy=bulk.folderPlan([...fake,{id:'no-blob',blob:null,location:{group:'buildings',building:'3525',area:'apartment',unit:'22C'}}],'building:3525',[{kind:'area',id:'apartment'},{kind:'unit',id:'22C'}],[]);
   assert.equal(legacy.photos.length,2,'Metadata-only records should not inflate photo counts');
   console.log('PASS: Nested folders, back navigation, leaf-only photo selection, counts, bulk share, ZIP and delete');
