@@ -113,7 +113,7 @@ async function main(){
   assert.equal(removed.length,0,'Deletion must require typed DELETE');
   typed='DELETE';
   get('gallery-delete').click();
-  await new Promise(resolve=>setImmediate(resolve));
+  await new Promise(resolve=>setTimeout(resolve,30));
   assert.deepEqual(removed.sort(),['one','two'],'Batch deletion only removes selected photos');
   assert(photos.some(p=>p.id==='three'),'Unselected photo must remain');
   assert(photos.some(p=>p.id==='legacy'),'Legacy entry must remain');
