@@ -1,0 +1,65 @@
+const assert=require('node:assert/strict');
+const fs=require('node:fs');
+const path=require('node:path');
+const vm=require('node:vm');
+const root=path.join(__dirname,'..');
+const context={window:{}};
+vm.runInNewContext(fs.readFileSync(path.join(root,'data/apartments.js'),'utf8'),context);
+vm.runInNewContext(fs.readFileSync(path.join(root,'apartment-lookup.js'),'utf8'),context);
+const data=context.window.WC_APARTMENTS;
+const lookup=context.window.WC_APT_LOOKUP;
+assert.equal(data.length,500);
+assert.equal(new Set(data.map(p=>String(p.number))).size,500,'No duplicate apartment numbers');
+const snapshot=JSON.stringify(data);
+function exact(query,unit,building){
+  const hit=lookup.search(query,data);
+  assert.equal(hit.exact.length,1,'Expected one exact match for '+query);
+  assert.equal(hit.exact[0].unit,unit);
+  assert.equal(hit.exact[0].building,building);
+  assert.equal(hit.matches[0].unit,unit);
+}
+exact('422','422A','3544');
+exact('422A','422A','3544');
+exact('APT 422 A','422A','3544');
+exact('# 422','422A','3544');
+exact('00422A','422A','3544');
+exact('166','166A','3695');
+exact('166a','166A','3695');
+for(const p of data){
+  const full=lookup.search(p.unit.toLowerCase(),data);
+  assert.equal(full.exact.length,1,'Missing full unit '+p.unit);
+  assert.equal(full.exact[0].building,p.building);
+  const numeric=lookup.search(String(p.number),data);
+  assert.equal(numeric.exact.length,1,'Missing number '+p.number);
+  assert.equal(numeric.exact[0].unit,p.unit);
+}
+assert.equal(lookup.search('999',data).matches.length,0,'Never fabricate unknown locations');
+assert.equal(lookup.search('422B',data).matches.length,0,'Never change wrong suffix to the known unit');
+assert.equal(lookup.search('other text',data).invalid,true);
+assert.equal(lookup.search('',data).empty,true);
+const partial=lookup.search('42',data,7);
+assert(partial.matches.length>=1);
+assert(partial.matches.length<=7);
+assert.equal(partial.matches[0].number,42,'Exact matches must take priority over prefix suggestions');
+assert.equal(JSON.stringify(data),snapshot,'Lookup must never mutate the original catalog');
+const html=fs.readFileSync(path.join(root,'index.html'),'utf8');
+const building=html.indexOf('id="building"');
+const lookupIndex=html.indexOf('id="quick-apartment-input"');
+const area=html.indexOf('id="areas"');
+assert(building>=0&&lookupIndex>building&&area>lookupIndex,'Direct search must remain below building selector and before area grid');
+for(const id of ['quick-apartment-status','quick-apartment-results','quick-apartment-clear'])
+  assert(html.includes('id="'+id+'"'),'Missing search UI: '+id);
+assert(html.includes('apartment-lookup.js?v=3.6.0'),'Versioned lookup helper must be present');
+assert(html.indexOf('apartment-lookup.js?v=3.6.0')<html.indexOf('app.js?v=3.6.0'),'Lookup helper must load before app');
+const app=fs.readFileSync(path.join(root,'app.js'),'utf8');
+assert(app.includes("const APP_VERSION='3.6.0'"));
+assert(app.includes('function chooseQuickApartment(candidate)'),'App must support selecting a lookup result');
+assert(app.includes("state.building=String(found.building)"),'Lookup must assign the building from catalog');
+assert(app.includes("state.area='apartment'"),'Lookup must select apartment area');
+assert(app.includes("state.unit=found.unit"),'Lookup must select correct unit');
+assert(app.includes("state.confirmed=false"),'User must explicitly confirm destination before capture');
+assert(app.includes('renderBuilding();\n    renderGroup();'),'Building and apartment selectors must update together');
+assert(app.includes("window.WC_APT_LOOKUP.search(input.value,apartments,7)"));
+assert(app.includes("if(found.exact.length===1)"),'Enter key must select exact matches only');
+assert(!app.includes('indexedDB.deleteDatabase('),'Do not erase stored photos');
+console.log('PASS: Offline quick lookup of 500 unique apartments by number or suffix, no invented building and intact original navigation');

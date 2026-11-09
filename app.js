@@ -3,7 +3,7 @@
  */
 (() => {
   'use strict';
-  const APP_VERSION='3.5.0';
+  const APP_VERSION='3.6.0';
   const apartments = Array.isArray(window.WC_APARTMENTS) ? window.WC_APARTMENTS : [];
   const residential = [...new Set(apartments.map(x => String(x.building)))].sort((a,b)=>Number(a)-Number(b));
   const boilers = new Set(['3514','3515','3544','3545','3570','3595','3615','3645','3685','3715','3720','3735','3770','3775','3825','3845']);
@@ -52,7 +52,61 @@
   }
   function locationKey(){return state.group==='facilities'?'facility:'+state.facility:`building:${state.building}:${state.area}:${state.area==='apartment'?state.unit:''}`;}
   function currentSnapshot(){return {group:state.group,building:state.group==='buildings'?state.building:null,area:state.group==='buildings'?state.area:null,unit:state.group==='buildings'&&state.area==='apartment'?state.unit:null,facility:state.group==='facilities'?state.facility:null,path:locationPath(),key:locationKey()};}
-  function markChanged(){state.confirmed=false;persist();updatePath();}
+  function markChanged(){state.confirmed=false;persist();updatePath();clearQuickApartment();}
+  function clearQuickApartment(){
+    $('quick-apartment-input').value='';
+    $('quick-apartment-results').replaceChildren();
+    $('quick-apartment-status').textContent='';
+  }
+  function chooseQuickApartment(candidate){
+    const found=apartments.find(a=>a.unit===candidate.unit&&String(a.building)===String(candidate.building));
+    if(!found)return;
+    // Only the copied 500-unit catalog can select a real apartment.
+    state.group='buildings';
+    state.building=String(found.building);
+    state.area='apartment';
+    state.unit=found.unit;
+    state.confirmed=false;
+    persist();
+    renderBuilding();
+    renderGroup();
+    $('quick-apartment-input').value=found.unit;
+    $('quick-apartment-results').replaceChildren();
+    $('quick-apartment-status').textContent='✓ Located: Building '+found.building+' / Apartment '+found.unit+'. The destination below is updated. Confirm before taking photos.';
+    $('quick-apartment-input').blur();
+  }
+  function renderQuickApartment(){
+    const input=$('quick-apartment-input'),output=$('quick-apartment-results'),status=$('quick-apartment-status');
+    output.replaceChildren();
+    const result=window.WC_APT_LOOKUP.search(input.value,apartments,7);
+    if(result.empty){status.textContent='';return;}
+    if(result.invalid){status.textContent='Enter a number such as 422, 422A or Apt 422A.';return;}
+    if(!result.matches.length){
+      status.textContent='No apartment found in the 500-unit catalog. Check the door number.';
+      return;
+    }
+    if(result.exact.length===1){
+      const p=result.exact[0];
+      status.textContent='Found: Apartment '+p.unit+' is in Building '+p.building+'. Select it below.';
+    }else{
+      status.textContent='Possible matches. Keep typing or choose the correct apartment.';
+    }
+    for(const entry of result.matches){
+      const button=document.createElement('button');
+      button.type='button';button.className='quick-apartment-result';
+      const unit=document.createElement('strong');unit.textContent='Apt '+entry.unit;
+      const building=document.createElement('span');building.textContent='Building '+entry.building;
+      button.append(unit,building);
+      if(result.exact.includes(entry))button.classList.add('exact');
+      button.addEventListener('click',()=>chooseQuickApartment(entry));
+      output.append(button);
+    }
+    if(result.more){
+      const more=document.createElement('p');more.className='quick-apartment-more';
+      more.textContent=result.more+' more matches. Type more digits to narrow the list.';
+      output.append(more);
+    }
+  }
   function option(value,label){const o=document.createElement('option');o.value=value;o.textContent=label;return o;}
   function renderBuilding(){
     $('building').replaceChildren(...buildingIds.map(b=>option(b,b==='3615'?'3615 — Leasing Office':`Building ${b}`)));
@@ -357,7 +411,17 @@
   function init(){
     $('runtime-version').textContent='V'+APP_VERSION;
     $('refresh-app').addEventListener('click',refreshApp);
+    if(!window.WC_APT_LOOKUP)throw new Error('Apartment lookup module failed to load.');
     validState();renderBuilding();renderFacilities();renderGroup();
+    $('quick-apartment-input').addEventListener('input',renderQuickApartment);
+    $('quick-apartment-input').addEventListener('keydown',event=>{
+      if(event.key!=='Enter')return;
+      const found=window.WC_APT_LOOKUP.search(event.currentTarget.value,apartments);
+      if(found.exact.length===1){event.preventDefault();chooseQuickApartment(found.exact[0]);}
+    });
+    $('quick-apartment-clear').addEventListener('click',()=>{
+      clearQuickApartment();$('quick-apartment-input').focus();
+    });
     $('building').addEventListener('change',e=>{state.building=e.target.value;state.area=state.building==='3615'?'office':'apartment';state.unit='';markChanged();renderAreas();});
     $('unit').addEventListener('change',e=>{state.unit=e.target.value;markChanged();});
     ['buildings','facilities'].forEach(g=>$('mode-'+g).addEventListener('click',()=>{state.group=g;markChanged();renderGroup();}));

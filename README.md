@@ -1,4 +1,4 @@
-# Work Camera V3.5 — private, local-only iPhone photo library
+# Work Camera V3.6 — private, local-only iPhone photo library
 
 **Independent PWA. Apartment Finder (`evecima/gb-af-tool`) remains unchanged.** Live app: https://evecima.github.io/work-camera/
 
@@ -6,6 +6,7 @@
 
 One home-screen icon named **Work Camera** opens a simple home screen:
 
+- **Find Apartment Directly** — on **Choose location → Buildings**, below the building dropdown, type only the apartment door number (for example `422`, `422A` or `APT 422 A`). The copied Apartment Finder catalog identifies the exact building and apartment while offline; tap the matching row (or press Enter for an exact match) to update the existing Building, Area=Apartment, Apartment, and photo destination. This does **not** launch the camera automatically; verify the destination first. The original building/area selection remains fully available. Unknown or invalid numbers are not assigned a guessed building.
 - **Take Photo** — select a building, apartment/area or facility. Choose **iPhone Camera · One photo** for the familiar iOS system capture interface (it necessarily returns to Work Camera after **Use Photo**); or **Continuous Camera · Several photos** for a live in-app viewfinder that remains open between shots. The app remembers the location and saves each accepted image locally. Photo Details appear only when using the small **eye (View)** button on a saved image in **My Photos**; tapping its thumbnail instead selects or deselects it.
 - **Continuous Camera limitations** — uses `getUserMedia()` / canvas JPEG capture, not Apple's full Camera app. Image resolution depends on the iPhone/browser stream and may be lower than native HEIC photos; flash, portrait, Apple image processing and all native controls are not guaranteed. Switch back to iPhone Camera whenever native photo quality or controls matter. Camera permission may be required; the continuous session closes on exit/background.
 - **My Photos** — tap photo thumbnails to select one or many; the selected photos show a checkmark. **Select visible** selects all photos in the currently displayed filter, while selection remains active across filter changes. **Clear** resets it. A small eye button opens a read-only full-size preview; Photo Details no longer hosts individual Share/Download/Delete actions. Instead use the selection toolbar: **Share** uses the iOS sheet to send original images, **Download** saves one original or prepares a location-organized ZIP for several (tap **Save ZIP** when ready), **Delete** permanently removes only selected records after explicit confirmation and typing `DELETE`.
@@ -80,3 +81,6 @@ node tests/local-backup-smoke.cjs
 ```
 
 The application shell is cached for offline use with `service-worker.js`; photographs remain in IndexedDB. These automated tests check archive structure, CRC and catalog fidelity; **they do not substitute for testing camera, sharing and storage on a real iPhone**.
+
+## Direct apartment search validation
+The 500-unit snapshot has exactly 500 unique numeric apartment numbers (1–500), each mapped to one building and one letter suffix. E.g., door `422` or `422A` resolves to **Building 3544 / Apartment 422A**, while `166` resolves to **Building 3695 / Apartment 166A**. Autocomplete may also show suggestions for shorter partial numbers; the app only updates the location after selecting a result. The lookup never queries the network, changes source Apartment Finder data, or writes photos.

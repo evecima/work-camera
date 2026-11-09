@@ -96,3 +96,22 @@ label:not(.file-button){display:block;color:#a9bad0;font-size:11px;font-weight:8
   #gallery-selection-summary{grid-column:1/-1;text-align:left}
   .gallery-selection-actions{bottom:calc(76px + env(safe-area-inset-bottom))}
 }
+
+/* V3.6: find an apartment directly by its door number. Kept under building selector. */
+.quick-apartment{margin:17px 0 19px;padding:13px 12px 15px;background:#16283d;border:1px solid #375575;border-radius:13px}
+.quick-apartment label{margin:0 0 5px;color:#d7eaff;font-size:12px;letter-spacing:1px;font-weight:800}
+.quick-apartment-hint{color:var(--muted);font-size:12px;line-height:1.5;margin:5px 0 11px}
+.quick-apartment-row{display:flex;gap:8px;align-items:center}
+.quick-apartment-row input{flex:1;min-width:0;width:100%;padding:14px 12px;font-size:16px;background:#213850;border:1px solid #567595;border-radius:10px;color:#f4f9ff;outline-offset:3px}
+.quick-apartment-row input:focus-visible{outline:2px solid #88c6ff;border-color:#8ec8ff}
+.quick-apartment-row .btn{flex:none;padding:13px 11px;font-size:12px}
+#quick-apartment-status{font-size:12px;line-height:1.55;color:#91ddba;margin:8px 0 0;overflow-wrap:anywhere}
+#quick-apartment-status:empty{display:none}
+.quick-apartment-results{display:flex;flex-direction:column;gap:7px;margin-top:9px;max-height:255px;overflow-y:auto}
+.quick-apartment-results:empty{display:none}
+.quick-apartment-result{display:flex;align-items:center;justify-content:space-between;gap:8px;min-height:45px;border-radius:9px;border:1px solid #476582;background:#223850;color:#e8f3ff;padding:10px 12px;text-align:left}
+.quick-apartment-result.exact{border-color:#74bbfa;background:#244b70}
+.quick-apartment-result strong{font-size:14px}
+.quick-apartment-result span{font-size:12px;color:#c0d9f1}
+.quick-apartment-result:focus-visible{outline:3px solid #9fddff;outline-offset:2px}
+.quick-apartment-more{font-size:11px;color:#a0b5ca;margin:2px 0 0}

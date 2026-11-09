@@ -11,8 +11,8 @@
   <meta name="description" content="Offline maintenance camera and private on-device photo library">
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="apple-touch-icon" href="icons/icon-192.png">
-  <link rel="stylesheet" href="styles.css?v=3.5.0">
-  <title>Work Camera V3.5 — Multi-select Gallery</title>
+  <link rel="stylesheet" href="styles.css?v=3.6.0">
+  <title>Work Camera V3.6 — Quick Apartment Lookup</title>
 </head>
 <body>
 <div id="app" class="shell">
@@ -44,6 +44,16 @@
       <div id="building-selection">
         <label for="building">BUILDING</label>
         <select id="building" aria-label="Select building"></select>
+        <div class="quick-apartment" role="search" aria-labelledby="quick-apartment-title">
+          <label id="quick-apartment-title" for="quick-apartment-input">🔎 FIND APARTMENT DIRECTLY</label>
+          <p class="quick-apartment-hint">Don't know the building? Type the door number (e.g. 422 or 422A).</p>
+          <div class="quick-apartment-row">
+            <input id="quick-apartment-input" type="search" placeholder="Apartment number · 422A" autocomplete="off" autocapitalize="characters" autocorrect="off" spellcheck="false" enterkeyhint="search" maxlength="20" aria-controls="quick-apartment-results" aria-describedby="quick-apartment-status">
+            <button type="button" class="btn btn-secondary" id="quick-apartment-clear" aria-label="Clear apartment search">Clear</button>
+          </div>
+          <p id="quick-apartment-status" role="status" aria-live="polite"></p>
+          <div id="quick-apartment-results" class="quick-apartment-results" aria-label="Apartment lookup matches"></div>
+        </div>
         <label>AREA</label>
         <div id="areas" class="area-grid" role="group" aria-label="Select area"></div>
         <div id="unit-section" class="hide">
@@ -168,9 +178,10 @@
   <img id="detail-image" alt="Work photo preview"><div id="detail-info"></div>
   <div class="dialog-actions"><button id="select-preview-photo" class="btn btn-primary" type="button">✓ Select photo</button></div><p class="hint">Select one or more photos in My Photos to share, download or delete them together.</p></div>
 </dialog>
-<script src="data/apartments.js?v=3.5.0"></script>
-<script src="local-backup.js?v=3.5.0" defer></script>
-<script src="gallery-bulk.js?v=3.5.0" defer></script>
-<script src="app.js?v=3.5.0" defer></script>
+<script src="data/apartments.js?v=3.6.0"></script>
+<script src="local-backup.js?v=3.6.0" defer></script>
+<script src="gallery-bulk.js?v=3.6.0" defer></script>
+<script src="apartment-lookup.js?v=3.6.0" defer></script>
+<script src="app.js?v=3.6.0" defer></script>
 </body>
 </html>
