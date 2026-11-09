@@ -1,4 +1,4 @@
-# Work Camera V3.8 — private, local-only iPhone photo library
+# Work Camera V3.9 — private, local-only iPhone photo library
 
 **Independent PWA. Apartment Finder (`evecima/gb-af-tool`) remains unchanged.** Live app: https://evecima.github.io/work-camera/
 
@@ -46,6 +46,25 @@ The app derives virtual folders from photo location metadata already stored in I
 - By default, empty buildings/facilities are omitted from the **My Photos** location dropdown only. **Show empty buildings** temporarily includes all 54 residential building choices plus the separate 3615 Leasing Office location and all three facilities. The **Take Photo** building/area choices are unchanged.
 - If the last photo from a selected building is removed while empty entries are hidden, the gallery returns to `All locations` rather than leaving an invalid filter. `Select visible` continues to select only displayed photos; existing multi-selection across filters remains intact.
 - Opening **My Photos** after taking new photos refreshes the counts. No thumbnails are altered, photo blobs are not changed, and IndexedDB schema stays at its original version.
+
+## Descriptive photo names when sharing and exporting
+
+Work Camera V3.9 assigns **human-readable filenames at export time only**. Examples:
+
+```text
+Building_3544_Boiler_Room_2026-11-08_19-10-23_abc123def456.jpg
+Building_3525_Apt_22C_2026-11-07_15-52-28_c947de23b2a0.heic
+Building_3525_Hallways_2026-11-08_18-30-10_0abc293a2f08.jpg
+Facility_3613_Montessori_School_2026-11-08_12-45-00_5577c0099b11.jpg
+```
+
+- Format: **building/facility + area/apartment (when applicable) + YYYY-MM-DD + HH-mm-ss (24-hour local time) + stable short photo ID + original image extension**.
+- Descriptive names are used when sharing **one or multiple images** through the iOS Share menu, downloading a single image, generating a **selected-photos ZIP**, and producing the **Weekly Backup ZIP**. Both ZIPs retain the folder hierarchy and original image bytes.
+- The short ID makes filenames distinct even if two photos were accepted in the same second. The original photo filename and image contents remain unchanged inside IndexedDB.
+- New photos store the iPhone's UTC-offset-at-save to preserve their local wall-clock time in future exports. For **older photos** without an offset, Work Camera formats the saved timestamp using the device's current local timezone. It does **not** rewrite their timestamps. The original creation timestamp is kept in UTC inside the ZIP's `manifest.json` alongside the newly generated filename and original filename.
+- **Time semantics:** the date and time come from when Work Camera **saved/registered** the photo, generally just after `Use Photo` for native captures. For **Import from Photos**, this is the **import time**, not necessarily the original camera shutter time; EXIF capture timestamps are not read. The exact photo time in imported images requires a separate metadata feature.
+- Some receiving apps may rename shared attachments; Work Camera supplies the descriptive names in the exported `File` objects and ZIP entries, but cannot force another app to retain them.
+- No existing photographs are renamed in the local library; no photo content, backups, camera routes, Apartment Finder data, or IndexedDB schema version are modified.
 
 ## Batch action limits and safeguards
 

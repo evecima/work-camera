@@ -49,10 +49,10 @@ const area=html.indexOf('id="areas"');
 assert(building>=0&&lookupIndex>building&&area>lookupIndex,'Direct search must remain below building selector and before area grid');
 for(const id of ['quick-apartment-status','quick-apartment-results','quick-apartment-clear'])
   assert(html.includes('id="'+id+'"'),'Missing search UI: '+id);
-assert(html.includes('apartment-lookup.js?v=3.8.0'),'Versioned lookup helper must be present');
-assert(html.indexOf('apartment-lookup.js?v=3.8.0')<html.indexOf('app.js?v=3.8.0'),'Lookup helper must load before app');
+assert(html.includes('apartment-lookup.js?v=3.9.0'),'Versioned lookup helper must be present');
+assert(html.indexOf('apartment-lookup.js?v=3.9.0')<html.indexOf('app.js?v=3.9.0'),'Lookup helper must load before app');
 const app=fs.readFileSync(path.join(root,'app.js'),'utf8');
-assert(app.includes("const APP_VERSION='3.8.0'"));
+assert(app.includes("const APP_VERSION='3.9.0'"));
 assert(app.includes('function chooseQuickApartment(candidate)'),'App must support selecting a lookup result');
 assert(app.includes("state.building=String(found.building)"),'Lookup must assign the building from catalog');
 assert(app.includes("state.area='apartment'"),'Lookup must select apartment area');

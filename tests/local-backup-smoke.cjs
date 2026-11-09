@@ -3,13 +3,14 @@ const fs=require('node:fs');
 const vm=require('node:vm');
 const path=require('node:path');
 const context={window:{},Blob,TextEncoder,Date,Uint8Array,Uint32Array,DataView};
+vm.runInNewContext(fs.readFileSync(path.join(__dirname,'../photo-naming.js'),'utf8'),context);
 vm.runInNewContext(fs.readFileSync(path.join(__dirname,'../local-backup.js'),'utf8'),context);
 const backup=context.window.WC_BACKUP;
 assert(backup&&typeof backup.makeZip==='function');
 assert.equal(backup.crc32(new TextEncoder().encode('123456789')),0xCBF43926,'CRC32 must match standard test vector');
 async function test(){
   const photos=[
-    {id:'photo1',createdAt:Date.parse('2026-11-06T20:00:00Z'),filename:'boiler.jpg',blob:new Blob(['boiler image'],{type:'image/jpeg'}),location:{group:'buildings',building:'3615',area:'boiler',path:'3615 / Boiler Room'}},
+    {id:'photo1',createdAt:Date.parse('2026-11-06T20:00:00Z'),createdTimezoneOffsetMinutes:300,filename:'boiler.jpg',blob:new Blob(['boiler image'],{type:'image/jpeg'}),location:{group:'buildings',building:'3615',area:'boiler',path:'3615 / Boiler Room'}},
     {id:'photo2',createdAt:Date.parse('2026-11-06T20:01:00Z'),filename:'kitchen.jpg',blob:new Blob(['kitchen image'],{type:'image/jpeg'}),location:{group:'buildings',building:'3520',area:'apartment',unit:'101',path:'Building 3520 / Apartment / Apt 101'}},
     {id:'photo3',createdAt:Date.parse('2026-11-06T20:02:00Z'),filename:'school.jpg',blob:new Blob(['school image'],{type:'image/jpeg'}),location:{group:'facilities',facility:'school',path:'3613 - Montessori School'}}
   ];
@@ -30,11 +31,15 @@ async function test(){
     pointer+=30+nameLen+extraLen+size;
   }
   assert.equal(entries.length,4,'3 images plus manifest');
-  assert(entries.some(x=>x.name.includes('3615/Boiler Room/')&&x.data==='boiler image'));
-  assert(entries.some(x=>x.name.includes('3520/Apartment/Apartment 101/')&&x.data==='kitchen image'));
-  assert(entries.some(x=>x.name.includes('Facilities/3613 - Montessori School/')&&x.data==='school image'));
+  assert(entries.some(x=>x.name.includes('3615/Boiler Room/Building_3615_Boiler_Room_2026-11-06_15-00-00_photo1.jpg')&&x.data==='boiler image'));
+  assert(entries.some(x=>x.name.includes('3520/Apartment/Apartment 101/Building_3520_Apt_101_')&&x.name.endsWith('_photo2.jpg')&&x.data==='kitchen image'));
+  assert(entries.some(x=>x.name.includes('Facilities/3613 - Montessori School/Facility_3613_Montessori_School_')&&x.name.endsWith('_photo3.jpg')&&x.data==='school image'));
   const manifest=JSON.parse(entries.find(x=>x.name==='manifest.json').data);
   assert.equal(manifest.photos.length,3);
+  assert.equal(manifest.photos[0].originalFilename,'boiler.jpg');
+  assert.equal(manifest.photos[0].exportedFilename,'Building_3615_Boiler_Room_2026-11-06_15-00-00_photo1.jpg');
+  assert.equal(manifest.photos[0].recordedTimezoneOffsetMinutes,300);
+  assert.equal(manifest.photos[0].recordedAtUtc,'2026-11-06T20:00:00.000Z');
   assert.equal(zip.readUInt32LE(zip.length-22),0x06054B50,'Expected end-of-central-directory marker');
   assert.equal(zip.readUInt16LE(zip.length-12),4,'Expected four central directory entries');
   const html=fs.readFileSync(path.join(__dirname,'../index.html'),'utf8');
@@ -61,7 +66,7 @@ async function test(){
   assert(bulk.includes('photos.filter(p=>!p.backupVerifiedAt)'),'Unverified photos require a specific warning');
   assert(bulk.includes("store.delete(photo.id)"),'Batch delete must target only explicitly selected records');
   assert(!bulk.includes('indexedDB.deleteDatabase('),'Never destroy the photo database');
-  assert(html.indexOf('gallery-bulk.js?v=3.8.0')<html.indexOf('app.js?v=3.8.0'),'Gallery module must load before app');
+  assert(html.indexOf('gallery-bulk.js?v=3.9.0')<html.indexOf('app.js?v=3.9.0'),'Gallery module must load before app');
   assert(app.includes("$('file-camera').click()"),'Location confirmation should launch system capture immediately');
   const nativeCaptureHandler=app.slice(app.indexOf("$('open-camera').addEventListener"),app.indexOf("$('open-continuous').addEventListener"));
   assert(!nativeCaptureHandler.includes('getUserMedia'),'Native mode must not start the web camera');
@@ -83,15 +88,19 @@ async function test(){
   assert(app.includes('buildingIds,facilities});'),'Gallery needs the unchanged building/facilities catalog');
   assert(!app.includes("for(const b of buildingIds)$('gallery-filter').append"),'Gallery must not append every empty building at startup');
   for(const script of ['app.js','local-backup.js','data/apartments.js'])
-    assert(html.includes(script+'?v=3.8.0'),'Versioned JS needed: '+script);
-  assert(html.includes('styles.css?v=3.8.0'),'Versioned CSS required');
-  assert(app.includes("const APP_VERSION='3.8.0'"),'Runtime build must identify the executable JS version');
+    assert(html.includes(script+'?v=3.9.0'),'Versioned JS needed: '+script);
+  assert(html.includes('styles.css?v=3.9.0'),'Versioned CSS required');
+  assert(html.indexOf('photo-naming.js?v=3.9.0')<html.indexOf('local-backup.js?v=3.9.0'),'Naming must load before ZIP module');
+  assert(html.indexOf('photo-naming.js?v=3.9.0')<html.indexOf('gallery-bulk.js?v=3.9.0'),'Naming must load before gallery sharing');
+  assert(app.includes("const APP_VERSION='3.9.0'"),'Runtime build must identify the executable JS version');
+  assert(app.includes('createdTimezoneOffsetMinutes:new Date(createdAt).getTimezoneOffset()'),'New photos must retain capture-time timezone offset');
   assert(app.includes("window.location.replace(address.href)"),'Refresh should navigate without changing storage');
   assert(!app.includes('indexedDB.deleteDatabase('),'Updating must never delete the photo database');
   const worker=fs.readFileSync(path.join(__dirname,'../service-worker.js'),'utf8');
-  assert(worker.includes("work-camera-shell-v3.8.0"),'New SW version required');
-  assert(worker.includes('gallery-bulk.js?v=3.8.0'),'Offline cache must contain the multi-select gallery module');
-  assert(worker.includes('apartment-lookup.js?v=3.8.0'),'Offline cache must contain the direct apartment finder');
+  assert(worker.includes("work-camera-shell-v3.9.0"),'New SW version required');
+  assert(worker.includes('gallery-bulk.js?v=3.9.0'),'Offline cache must contain the multi-select gallery module');
+  assert(worker.includes('photo-naming.js?v=3.9.0'),'Offline cache must include descriptive photo name generator');
+  assert(worker.includes('apartment-lookup.js?v=3.9.0'),'Offline cache must contain the direct apartment finder');
   assert(worker.includes("fetch(event.request,{cache:'no-store'})"),'Online fetch must bypass HTTP cache');
   assert(worker.includes("cache.match('./index.html')"),'Offline fallback must remain available');
   assert(!worker.includes('indexedDB'),'SW must not modify photos');

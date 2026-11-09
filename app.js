@@ -3,7 +3,7 @@
  */
 (() => {
   'use strict';
-  const APP_VERSION='3.8.0';
+  const APP_VERSION='3.9.0';
   const apartments = Array.isArray(window.WC_APARTMENTS) ? window.WC_APARTMENTS : [];
   const residential = [...new Set(apartments.map(x => String(x.building)))].sort((a,b)=>Number(a)-Number(b));
   const boilers = new Set(['3514','3515','3544','3545','3570','3595','3615','3645','3685','3715','3720','3735','3770','3775','3825','3845']);
@@ -149,7 +149,8 @@
   }
   async function addPhoto(blob, filename){
     const db=await openDb(); const location=currentSnapshot();
-    const photo={id:typeof crypto!=='undefined'&&crypto.randomUUID?crypto.randomUUID():String(Date.now())+'-'+Math.random().toString(36).slice(2),createdAt:Date.now(),filename:filename||'work-photo.jpg',mime:blob.type||'image/jpeg',size:blob.size,blob,location,status:'local-only'};
+    const createdAt=Date.now();
+    const photo={id:typeof crypto!=='undefined'&&crypto.randomUUID?crypto.randomUUID():String(createdAt)+'-'+Math.random().toString(36).slice(2),createdAt,createdTimezoneOffsetMinutes:new Date(createdAt).getTimezoneOffset(),filename:filename||'work-photo.jpg',mime:blob.type||'image/jpeg',size:blob.size,blob,location,status:'local-only'};
     await new Promise((resolve,reject)=>{const tx=db.transaction('photos','readwrite');tx.objectStore('photos').add(photo);tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error);tx.onabort=()=>reject(tx.error);});
     return photo;
   }
@@ -247,7 +248,7 @@
     else $('detail-image').removeAttribute('src');
     $('select-preview-photo').disabled=!photo.blob;
     $('select-preview-photo').textContent=window.WC_GALLERY_BULK.isSelected(photo.id)?'✓ Unselect photo':'✓ Select photo';
-    $('detail-info').textContent=photo.location.path+' · '+new Date(photo.createdAt).toLocaleString()+' · '+((photo.size||0)/1024/1024).toFixed(2)+' MB · '+(!photo.blob?'No local photo (legacy entry)':photo.backupVerifiedAt?'Computer backup confirmed':'NOT verified on computer');
+    $('detail-info').textContent=photo.location.path+' · '+new Date(photo.createdAt).toLocaleString()+' · '+((photo.size||0)/1024/1024).toFixed(2)+' MB · '+(!photo.blob?'No local photo (legacy entry)':photo.backupVerifiedAt?'Computer backup confirmed':'NOT verified on computer')+' · Export filename: '+(window.WC_PHOTO_NAMING?window.WC_PHOTO_NAMING.photoFileName(photo):'Unavailable');
     $('photo-dialog').showModal();
   }
   function closeDialog(){

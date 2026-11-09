@@ -65,6 +65,7 @@ async function main(){
     navigator:{share:args=>{shared=args;return Promise.resolve();},canShare:()=>true},
     confirm:()=>allowDelete,prompt:()=>typed,setTimeout
   };
+  vm.runInNewContext(fs.readFileSync(path.join(__dirname,'../photo-naming.js'),'utf8'),sandbox);
   vm.runInNewContext(fs.readFileSync(path.join(__dirname,'../gallery-bulk.js'),'utf8'),sandbox);
   const bulk=sandbox.window.WC_GALLERY_BULK;
   assert.equal(typeof bulk.init,'function');
@@ -146,6 +147,7 @@ async function main(){
   get('gallery-share').click();
   await Promise.resolve();
   assert.equal(shared.files.length,1,'Single-photo share must contain one original');
+  assert.match(shared.files[0].name,/^Building_3544_Boiler_Room_\d{4}-\d\d-\d\d_\d\d-\d\d-\d\d_one\.jpg$/,'Shared file must have descriptive building, area, timestamp and ID');
   get('gallery-clear-selection').click();
   assert(!bulk.isSelected('one'));
   get('gallery-filter').value='current';
@@ -158,6 +160,7 @@ async function main(){
   get('gallery-share').click();
   await Promise.resolve();
   assert.equal(shared.files.length,2,'Bulk share must send both selected image files');
+  assert.equal(new Set(shared.files.map(file=>file.name)).size,2,'Multiple shared images must have distinct names');
   get('gallery-download').click();
   await new Promise(resolve=>setImmediate(resolve));
   assert.equal(zipCount,2,'Two selected photos are included in ZIP');
