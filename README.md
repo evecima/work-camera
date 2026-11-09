@@ -8,7 +8,7 @@ One home-screen icon named **Work Camera** opens a simple home screen:
 
 - **Take Photo** — select a building, apartment/area or facility. Choose **iPhone Camera · One photo** for the familiar iOS system capture interface (it necessarily returns to Work Camera after **Use Photo**); or **Continuous Camera · Several photos** for a live in-app viewfinder that remains open between shots. The app remembers the location and saves each accepted image locally. Photo Details appear only after tapping a saved image in **My Photos**.
 - **Continuous Camera limitations** — uses `getUserMedia()` / canvas JPEG capture, not Apple's full Camera app. Image resolution depends on the iPhone/browser stream and may be lower than native HEIC photos; flash, portrait, Apple image processing and all native controls are not guaranteed. Switch back to iPhone Camera whenever native photo quality or controls matter. Camera permission may be required; the continuous session closes on exit/background.
-- **My Photos** — browse local work photos by building, area and apartment; filter locations; use **Share** to invoke the iPhone share sheet for Messages, Mail, AirDrop or other compatible targets, **Download** to export the file, or **Delete** with confirmation. Shares are initiated by the user and do not constitute a backup.
+- **My Photos** — tap photo thumbnails to select one or many; the selected photos show a checkmark. **Select visible** selects all photos in the currently displayed filter, while selection remains active across filter changes. **Clear** resets it. A small eye button opens a read-only full-size preview; Photo Details no longer hosts individual Share/Download/Delete actions. Instead use the selection toolbar: **Share** uses the iOS sheet to send original images, **Download** saves one original or prepares a location-organized ZIP for several (tap **Save ZIP** when ready), **Delete** permanently removes only selected records after explicit confirmation and typing `DELETE`.
 - **Weekly Backup** — create a ZIP of original photos sorted into folders; copy it to a computer, open and inspect it, explicitly confirm the backup, and only then unlock the delete-verified option.
 
 Photos accepted from the iPhone system capture interface are stored privately in this iPhone web application's **IndexedDB**, not uploaded to any cloud. iOS controls which native capture functions are available: **a PWA cannot demand every feature of the full Apple Camera app**. For advanced photography, take the photo in Apple's Camera app and choose **Import from Photos**; those original shots also remain in the Apple Photos library. System-capture storage behavior should be checked on the user's iOS version. ZIP exports use iOS Share / Save to Files where supported, otherwise browser download. ZIPs are divided into manageable batches (normally up to 80 photos and ~70 MB). Every ZIP contains a `manifest.json` listing the photo paths.
@@ -34,6 +34,13 @@ Work_Camera_2026-11-06_wc-....zip
 └── manifest.json
 ```
 
+## Batch action limits and safeguards
+
+- **Share:** direct multi-file sharing can depend on the iOS destination app. For reliability the direct share action is limited to 25 photos or 50 MB per operation. Unsupported groups can be exported as a ZIP. Choosing Share never deletes originals.
+- **Download:** one photo exports its original file; two or more create an offline ZIP, organized by building/area and including a manifest. An individual ZIP can contain up to 80 photos or 70 MB. Use Weekly Backup for larger selections. ZIP preparation does not flag photos as verified backups.
+- **Delete:** warns explicitly about photos without confirmed computer backups, then requires typing `DELETE`. Unlike Weekly Backup cleanup, this deliberate manual gallery delete **can remove unverified photos**, so verify your copy first. No automatic deletion occurs.
+- Photo selection and prepared ZIP data live only in app memory, not in IndexedDB. Existing images, database schema, photography modes, and weekly computer backup workflow are unchanged.
+
 ## Important storage and privacy limits
 
 - **No cloud backup. No Azure or Microsoft registration. No additional subscriptions.**
@@ -45,9 +52,9 @@ Work_Camera_2026-11-06_wc-....zip
 
 ## Install and update
 
-### Version v3.4: safe update troubleshooting
+### Version v3.5: safe update troubleshooting
 
-The Home screen shows **Running version: V3.4.0** from the executable JavaScript, plus **Update app**. That button checks the service worker and reloads the app using a fresh URL while keeping the same IndexedDB database. It **does not erase photos, clear website data, or remove the home-screen icon**.
+The Home screen shows **Running version: V3.5.0** from the executable JavaScript, plus **Update app**. That button checks the service worker and reloads the app using a fresh URL while keeping the same IndexedDB database. It **does not erase photos, clear website data, or remove the home-screen icon**.
 
 On an installed iPhone PWA, if the visible version is absent or older, ensure the iPhone is online, fully quit Work Camera from the app switcher, reopen it, and check again. If the new version appears, tap **Update app** and check the runtime label. **Do not uninstall the app, delete the icon, or clear Safari data** to force an update; those actions may lose saved work photos.
 
