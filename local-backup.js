@@ -34,7 +34,7 @@
     const manifest={
       format:'Work Camera local photo archive v1',
       exportedAt:new Date().toISOString(),
-      photos:photos.map((p,i)=>({id:p.id,path:entries[i].path,exportedFilename:root.WC_PHOTO_NAMING.photoFileName(p),originalFilename:p.filename||null,recordedAtUtc:new Date(p.createdAt).toISOString(),recordedTimezoneOffsetMinutes:Number.isInteger(p.createdTimezoneOffsetMinutes)?p.createdTimezoneOffsetMinutes:null,location:p.location.path,bytes:p.blob.size}))
+      photos:photos.map((p,i)=>({id:p.id,path:entries[i].path,exportedFilename:root.WC_PHOTO_NAMING.photoFileName(p),originalFilename:p.filename||null,takenAt:new Date(p.createdAt).toISOString(),recordedAtUtc:new Date(p.createdAt).toISOString(),recordedTimezoneOffsetMinutes:Number.isInteger(p.createdTimezoneOffsetMinutes)?p.createdTimezoneOffsetMinutes:null,location:p.location.path,bytes:p.blob.size}))
     };
     entries.push({path:'manifest.json',blob:new Blob([JSON.stringify(manifest,null,2)],{type:'application/json'}),time:Date.now()});
     if(entries.length>65535)throw new Error('Too many files for one ZIP archive.');
