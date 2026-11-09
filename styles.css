@@ -115,3 +115,10 @@ label:not(.file-button){display:block;color:#a9bad0;font-size:11px;font-weight:8
 .quick-apartment-result span{font-size:12px;color:#c0d9f1}
 .quick-apartment-result:focus-visible{outline:3px solid #9fddff;outline-offset:2px}
 .quick-apartment-more{font-size:11px;color:#a0b5ca;margin:2px 0 0}
+
+/* V3.7 — photo-populated location picker; optional empty-building catalog */
+.gallery-location-options{display:flex;align-items:flex-start;justify-content:space-between;gap:11px;flex-wrap:wrap;margin:-8px 0 16px}
+.gallery-show-empty-label{display:flex!important;align-items:center;gap:8px;font-size:12px!important;letter-spacing:0!important;text-transform:none!important;font-weight:600!important;line-height:1.5;color:#dfebfa!important;margin:0!important;cursor:pointer}
+.gallery-show-empty-label input{accent-color:#3386dd;width:19px;height:19px;flex:none;margin:0}
+#gallery-location-summary{flex:1 1 100%;font-size:11px;color:#a6bed6;line-height:1.5;margin:0}
+#gallery-filter option{color:var(--text)}
