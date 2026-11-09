@@ -1,4 +1,4 @@
-/* Work Camera v3.7 — gallery multi-selection and photo-populated location filtering.
+/* Work Camera v3.8 — nested photo folders, multi-selection and populated locations.
  * This module reads the existing IndexedDB photo store; no schema changes or cloud calls.
  */
 (function(root){
@@ -9,6 +9,7 @@
   const selection=new Set();
   const thumbnails=[];
   let visibleIds=[],photoMap=new Map(),preparedZip=null,busy=false,api=null;
+  let folderTrail=[];
   function notice(message,error=false){
     $('gallery-action-message').textContent=message;
     $('gallery-action-message').classList.toggle('error',error);
@@ -38,7 +39,7 @@
     $('gallery-selection-actions').classList.toggle('hide',!count);
     $('view-gallery').classList.toggle('has-selection',count>0);
     $('gallery-selected-count').textContent=count+' selected'+(count===1?'':' photos');
-    $('gallery-selection-summary').textContent=count?count+' selected (across filters)':'Tap images to select';
+    $('gallery-selection-summary').textContent=count?count+' selected (across folders)':visibleIds.length?'Tap images to select':'Open a folder to select photos';
     $('gallery-select-visible').disabled=busy||visibleIds.length===0||visibleIds.every(id=>selection.has(id));
     $('gallery-clear-selection').disabled=busy||count===0;
     for(const id of ['gallery-share','gallery-download','gallery-delete'])$(id).disabled=busy||count===0;
@@ -125,58 +126,190 @@
       ? 'All '+buildingIds.length+' building choices available · '+buildingCount+' with photos'+(facilityCount?' · '+facilityCount+' facilities with photos':'')+'.'
       : buildingCount+' building'+(buildingCount===1?'':'s')+' with photos'+(facilityCount?' · '+facilityCount+' facilities with photos':'')+'. Only locations with saved photos are listed.';
   }
+  const AREA_NAMES={
+    apartment:'Apartments',exterior:'Exterior',hallways:'Hallways',
+    laundry:'Laundry Room',boiler:'Boiler Room',office:'Office Lease',other:'Other'
+  };
+  const AREA_ORDER=['apartment','exterior','hallways','laundry','boiler','office','other'];
+  function photoCountText(n){return n+' photo'+(n===1?'':'s');}
+  function buildingTitle(id){return id==='3615'?'3615 · Leasing Office':'Building '+id;}
+  function collectFolders(images,getGroup,labelFor,orderKeys){
+    const groups=new Map();
+    for(const p of images){
+      const id=String(getGroup(p));
+      if(!groups.has(id))groups.set(id,[]);
+      groups.get(id).push(p);
+    }
+    const ordered=[...groups].sort((a,b)=>{
+      const ra=orderKeys?orderKeys.indexOf(a[0]):-1;
+      const rb=orderKeys?orderKeys.indexOf(b[0]):-1;
+      if(ra!==rb&&ra>=0&&rb>=0)return ra-rb;
+      if(ra>=0&&rb<0)return -1;
+      if(rb>=0&&ra<0)return 1;
+      return a[0].localeCompare(b[0],undefined,{numeric:true});
+    });
+    return ordered.map(([id,items])=>({id,label:labelFor(id,items),count:items.length,photos:items}));
+  }
+  function folderPlan(records,filter,trail,facilities){
+    const images=records.filter(p=>p.blob&&p.blob.size>0);
+    let scope=images,rest=trail;
+    if(filter==='all'){
+      if(!trail.length){
+        const roots=collectFolders(scope,p=>{
+          const loc=p.location||{};
+          if(loc.group==='buildings')return 'building:'+String(loc.building||'unknown');
+          if(loc.group==='facilities')return 'facility:'+String(loc.facility||'unknown');
+          return 'other';
+        },key=>{
+          if(key.startsWith('building:'))return buildingTitle(key.slice(9));
+          if(key.startsWith('facility:'))return facilities.find(f=>String(f.id)===key.slice(9))?.label||'Facility '+key.slice(9);
+          return 'Other photos';
+        });
+        return {kind:'folders',folders:roots.map(g=>({
+          kind:g.id.startsWith('building:')?'building':g.id.startsWith('facility:')?'facility':'other',
+          id:g.id.includes(':')?g.id.slice(g.id.indexOf(':')+1):g.id,
+          label:g.label,count:g.count
+        }))};
+      }
+      const location=trail[0];
+      if(location.kind==='facility')
+        return {kind:'photos',photos:scope.filter(p=>p.location?.group==='facilities'&&String(p.location.facility)===location.id)};
+      if(location.kind==='other')
+        return {kind:'photos',photos:scope.filter(p=>!['buildings','facilities'].includes(p.location?.group))};
+      if(location.kind!=='building')return {kind:'photos',photos:[]};
+      scope=scope.filter(p=>p.location?.group==='buildings'&&String(p.location.building)===location.id);
+      rest=trail.slice(1);
+    }else if(filter.startsWith('building:')){
+      const id=filter.slice(9);
+      scope=scope.filter(p=>p.location?.group==='buildings'&&String(p.location.building)===id);
+    }else{
+      return {kind:'photos',photos:scope};
+    }
+    if(!rest.length){
+      const folders=collectFolders(scope,p=>AREA_NAMES[p.location?.area]?p.location.area:'other',id=>AREA_NAMES[id]||'Other',AREA_ORDER)
+        .map(f=>({kind:'area',id:f.id,label:f.label,count:f.count,
+          sublabel:f.id==='apartment'?(new Set(f.photos.map(p=>String(p.location?.unit||'Unknown'))).size)+' apartments':null}));
+      return {kind:'folders',folders};
+    }
+    if(rest[0]?.kind!=='area')return {kind:'photos',photos:[]};
+    const area=rest[0].id;
+    scope=scope.filter(p=>(AREA_NAMES[p.location?.area]?p.location.area:'other')===area);
+    if(area==='apartment'){
+      if(rest.length===1){
+        const folders=collectFolders(scope,p=>String(p.location?.unit||'Unknown'),id=>'Apt '+id)
+          .map(f=>({kind:'unit',id:f.id,label:f.label,count:f.count}));
+        return {kind:'folders',folders};
+      }
+      if(rest[1]?.kind!=='unit')return {kind:'photos',photos:[]};
+      scope=scope.filter(p=>String(p.location?.unit||'Unknown')===rest[1].id);
+    }
+    return {kind:'photos',photos:scope.sort((a,b)=>b.createdAt-a.createdAt)};
+  }
+  function activeFolderLabel(filter){
+    if(filter==='all')return 'All locations';
+    if(filter==='current')return 'Current location';
+    if(filter.startsWith('building:'))return buildingTitle(filter.slice(9));
+    if(filter.startsWith('facility:'))return api.facilities?.find(f=>String(f.id)===filter.slice(9))?.label||'Facility';
+    return 'All locations';
+  }
+  function showFolderBar(filter){
+    $('gallery-folder-back').hidden=filter==='all'&&folderTrail.length===0;
+    $('gallery-folder-path').textContent=[activeFolderLabel(filter),...folderTrail.map(x=>x.label)].join(' / ');
+  }
+  function openFolder(folder){
+    if(busy)return;
+    folderTrail.push({kind:folder.kind,id:folder.id,label:folder.label});
+    void render().then(()=>$('gallery-folder-bar').scrollIntoView?.({block:'start',behavior:'smooth'}));
+  }
+  function goBack(){
+    if(busy)return;
+    if(folderTrail.length)folderTrail.pop();
+    else $('gallery-filter').value='all';
+    void render().then(()=>$('gallery-folder-bar').scrollIntoView?.({block:'start',behavior:'smooth'}));
+  }
+  function changedFilter(){
+    folderTrail=[];
+    void render();
+  }
+  function showFolders(folders){
+    const grid=$('gallery-grid');
+    for(const folder of folders){
+      const button=document.createElement('button');
+      button.type='button';button.className='gallery-folder';
+      button.dataset.folderKind=folder.kind;button.dataset.folderId=folder.id;
+      button.setAttribute('aria-label','Open '+folder.label+', '+photoCountText(folder.count));
+      const symbol=document.createElement('span');symbol.className='gallery-folder-icon';
+      symbol.textContent=folder.kind==='building'?'🏢':folder.kind==='area'?(folder.id==='boiler'?'🔥':folder.id==='hallways'?'🚪':folder.id==='apartment'?'🏠':folder.id==='laundry'?'🧺':'📁'):'📁';
+      const details=document.createElement('span');details.className='gallery-folder-info';
+      const name=document.createElement('strong');name.textContent=folder.label;
+      const count=document.createElement('small');count.textContent=photoCountText(folder.count)+(folder.sublabel?' · '+folder.sublabel:'');
+      details.append(name,count);
+      const chevron=document.createElement('span');chevron.className='gallery-folder-chevron';
+      chevron.textContent='›';chevron.setAttribute('aria-hidden','true');
+      button.append(symbol,details,chevron);
+      button.addEventListener('click',()=>openFolder(folder));
+      grid.append(button);
+    }
+  }
   async function render(){
     release();$('gallery-grid').replaceChildren();
     try{
       const all=await api.listPhotos();
       photoMap=new Map(all.map(p=>[p.id,p]));
+      const previousFilter=$('gallery-filter').value;
       refreshLocationChoices(all);
+      const filter=$('gallery-filter').value;
+      if(previousFilter!==filter)folderTrail=[];
       for(const id of [...selection]){
         const photo=photoMap.get(id);
         if(!photo?.blob||!photo.blob.size)selection.delete(id);
       }
-      const filter=$('gallery-filter').value;
-      let photos=all;
-      if(filter==='current')photos=photos.filter(p=>p.location.key===api.locationKey());
-      else if(filter.startsWith('building:'))photos=photos.filter(p=>p.location.group==='buildings'&&p.location.building===filter.slice(9));
-      else if(filter.startsWith('facility:'))photos=photos.filter(p=>p.location.group==='facilities'&&p.location.facility===filter.slice(9));
-      photos.sort((a,b)=>(a.location.path||'').localeCompare(b.location.path||'')||b.createdAt-a.createdAt);
-      visibleIds=photos.filter(p=>p.blob&&p.blob.size>0).map(p=>p.id);
-      $('photo-count').textContent=photos.length+' photo'+(photos.length===1?'':'s');
-      $('gallery-empty').classList.toggle('hide',photos.length!==0);
-      let lastGroup='';
-      for(const photo of photos){
-        const folder=photo.location.path||'Unknown location';
-        if(folder!==lastGroup){
-          const heading=document.createElement('h3');
-          heading.className='gallery-group-title';heading.textContent='📁 '+folder;
-          $('gallery-grid').append(heading);lastGroup=folder;
+      let filtered=all;
+      if(filter==='current')filtered=all.filter(p=>p.location?.key===api.locationKey());
+      else if(filter.startsWith('building:'))filtered=all.filter(p=>p.location?.group==='buildings'&&String(p.location.building)===filter.slice(9));
+      else if(filter.startsWith('facility:'))filtered=all.filter(p=>p.location?.group==='facilities'&&String(p.location.facility)===filter.slice(9));
+      $('photo-count').textContent=photoCountText(filtered.filter(p=>p.blob&&p.blob.size).length);
+      let plan=folderPlan(filtered,filter,folderTrail,api.facilities||[]);
+      // If the user deleted the last photo in a nested folder, back out to the nearest populated level.
+      while(folderTrail.length&&((plan.kind==='photos'&&plan.photos.length===0)||(plan.kind==='folders'&&plan.folders.length===0))){
+        folderTrail.pop();
+        plan=folderPlan(filtered,filter,folderTrail,api.facilities||[]);
+      }
+      showFolderBar(filter);
+      visibleIds=[];
+      $('gallery-empty').classList.toggle('hide',plan.kind==='folders'?plan.folders.length>0:plan.photos.length>0);
+      if(plan.kind==='folders'){
+        showFolders(plan.folders);
+      }else{
+        const photos=plan.photos;
+        visibleIds=photos.map(p=>p.id);
+        const grid=$('gallery-grid');
+        for(const photo of photos){
+          const folder=photo.location?.path||'Unknown location';
+          const src=URL.createObjectURL(photo.blob);
+          thumbnails.push(src);
+          const cell=document.createElement('div');cell.className='photo-cell';
+          const tile=document.createElement('button');tile.type='button';
+          tile.className='photo-tile';tile.dataset.photoId=photo.id;
+          tile.setAttribute('aria-pressed',String(selection.has(photo.id)));
+          tile.setAttribute('aria-label','Select photo in '+folder+', '+new Date(photo.createdAt).toLocaleString());
+          const img=document.createElement('img');img.src=src;img.alt='Work photo';img.loading='lazy';
+          const check=document.createElement('span');check.className='photo-select-indicator';
+          check.setAttribute('aria-hidden','true');check.textContent=selection.has(photo.id)?'✓':'';
+          const caption=document.createElement('div');caption.className='tile-caption';
+          const title=document.createElement('strong');title.textContent=folder;
+          const date=document.createElement('small');date.textContent=new Date(photo.createdAt).toLocaleString();
+          const status=document.createElement('div');status.className='tile-badge'+(photo.backupVerifiedAt?' verified':'');
+          status.textContent=photo.backupVerifiedAt?'✓ Computer backup confirmed':photo.backupBatchId?'● Exported · check on computer':'● On this device only';
+          caption.append(title,date);tile.append(img,check,caption,status);
+          tile.addEventListener('click',()=>toggle(photo.id));
+          const preview=document.createElement('button');preview.type='button';
+          preview.className='photo-preview-button';preview.textContent='👁';
+          preview.setAttribute('aria-label','View full photo');
+          preview.title='View photo';
+          preview.addEventListener('click',()=>api.showDetails(photo));
+          cell.append(tile,preview);grid.append(cell);
         }
-        const src=photo.blob?URL.createObjectURL(photo.blob):null;
-        if(src)thumbnails.push(src);
-        const cell=document.createElement('div');cell.className='photo-cell';
-        const tile=document.createElement('button');tile.type='button';
-        tile.className='photo-tile';tile.dataset.photoId=photo.id;
-        tile.disabled=!photo.blob;
-        tile.setAttribute('aria-pressed',String(selection.has(photo.id)));
-        tile.setAttribute('aria-label','Select photo in '+folder+', '+new Date(photo.createdAt).toLocaleString());
-        const img=document.createElement(photo.blob?'img':'div');
-        if(src){img.src=src;img.alt='Work photo';img.loading='lazy';}
-        else{img.className='cloud-thumbnail';img.textContent='Legacy cloud-only record';}
-        const check=document.createElement('span');check.className='photo-select-indicator';
-        check.setAttribute('aria-hidden','true');check.textContent=selection.has(photo.id)?'✓':'';
-        const caption=document.createElement('div');caption.className='tile-caption';
-        const title=document.createElement('strong');title.textContent=folder;
-        const date=document.createElement('small');date.textContent=new Date(photo.createdAt).toLocaleString();
-        const status=document.createElement('div');status.className='tile-badge'+(photo.backupVerifiedAt?' verified':'');
-        status.textContent=!photo.blob?'No local image (legacy record)':photo.backupVerifiedAt?'✓ Computer backup confirmed':photo.backupBatchId?'● Exported · check on computer':'● On this device only';
-        caption.append(title,date);tile.append(img,check,caption,status);
-        tile.addEventListener('click',()=>toggle(photo.id));
-        const preview=document.createElement('button');
-        preview.type='button';preview.className='photo-preview-button';
-        preview.textContent='👁';preview.setAttribute('aria-label','View full photo');
-        preview.title='View photo';preview.addEventListener('click',()=>api.showDetails(photo));
-        cell.append(tile,preview);$('gallery-grid').append(cell);
       }
       refreshSelection();
     }catch(error){
@@ -273,6 +406,7 @@
   function init(dependencies){
     api=dependencies;
     $('gallery-show-empty').addEventListener('change',()=>void render());
+    $('gallery-folder-back').addEventListener('click',goBack);
     $('gallery-select-visible').addEventListener('click',selectVisible);
     $('gallery-clear-selection').addEventListener('click',clear);
     $('gallery-share').addEventListener('click',share);
@@ -284,5 +418,5 @@
     });
     refreshSelection();
   }
-  root.WC_GALLERY_BULK={init,render,release,toggle,isSelected:id=>selection.has(id),summarizeLocations};
+  root.WC_GALLERY_BULK={init,render,release,toggle,changedFilter,isSelected:id=>selection.has(id),summarizeLocations,folderPlan};
 })(window);
