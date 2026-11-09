@@ -54,7 +54,7 @@ async function test(){
   assert(!html.includes('id="camera-video"'),'Remove custom getUserMedia camera viewfinder');
   const app=fs.readFileSync(path.join(__dirname,'../app.js'),'utf8');
   const bulk=fs.readFileSync(path.join(__dirname,'../gallery-bulk.js'),'utf8');
-  assert(bulk.includes('navigator.share({files,title:'),'Multi-file Share button must use iPhone share sheet');
+  assert(bulk.includes('navigator.share({files})'),'Multi-file Share must send image file(s) only without text or title');
   const bulkContext={window:{},document:{}};
   vm.runInNewContext(bulk,bulkContext);
   assert(typeof bulkContext.window.WC_GALLERY_BULK?.init==='function','Bulk gallery module must export initialization');
