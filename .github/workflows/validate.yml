@@ -14,6 +14,7 @@ jobs:
         run: |
           node --check app.js
           node --check gallery-bulk.js
+          node --check apartment-lookup.js
           node --check local-backup.js
           node --check service-worker.js
       - name: Validate catalog and local backup ZIP
@@ -21,3 +22,4 @@ jobs:
           node tests/catalog-smoke.cjs
           node tests/local-backup-smoke.cjs
           node tests/gallery-bulk-smoke.cjs
+          node tests/apartment-lookup-smoke.cjs
