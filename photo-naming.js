@@ -52,5 +52,30 @@
     const suffix=label(photo?.id||'NoID').slice(0,18);
     return prefix+'_'+localTimestamp(photo)+'_'+suffix+fileExtension(photo);
   }
-  root.WC_PHOTO_NAMING={photoFileName,localTimestamp,fileExtension};
+  function locationLabel(photo){
+    const loc=photo?.location||{};
+    if(loc.group==='facilities')return loc.path||loc.facility||'Facility';
+    const building='Building '+String(loc.building||'Unknown');
+    const area=loc.area==='apartment'?'Apt '+String(loc.unit||'Unknown'):
+      ({boiler:'Boiler Room',hallways:'Hallways',laundry:'Laundry Room',exterior:'Exterior',office:'Office Lease'})[loc.area]||
+      String(loc.area||'Unknown area');
+    return building+' / '+area;
+  }
+  function caption(photo){
+    const stamp=localTimestamp(photo).replace('_',' ').replace(/_(\d\d)-(\d\d)-(\d\d)$/,' $1:$2:$3');
+    return locationLabel(photo)+' · '+stamp;
+  }
+  function sharePayload(photos){
+    const items=Array.isArray(photos)?photos.filter(p=>p?.blob):[];
+    if(!items.length)return {title:'Work Camera',text:''};
+    if(items.length===1){
+      const p=items[0];
+      return {title:caption(p),text:'📍 '+locationLabel(p)+'\n📅 '+localTimestamp(p).replace('_',' ').replace(/_(\d\d)-(\d\d)-(\d\d)$/,' $1:$2:$3')+'\n📎 '+photoFileName(p)};
+    }
+    const locations=[...new Set(items.map(locationLabel))];
+    const title=items.length+' photos · '+(locations.length===1?locations[0]:locations.length+' locations');
+    const text=items.map((p,i)=>(i+1)+'. '+caption(p)+'\n   '+photoFileName(p)).join('\n');
+    return {title,text};
+  }
+  root.WC_PHOTO_NAMING={photoFileName,localTimestamp,fileExtension,locationLabel,caption,sharePayload};
 })(window);
