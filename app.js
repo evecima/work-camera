@@ -3,7 +3,7 @@
  */
 (() => {
   'use strict';
-  const APP_VERSION='3.4.0';
+  const APP_VERSION='3.5.0';
   const apartments = Array.isArray(window.WC_APARTMENTS) ? window.WC_APARTMENTS : [];
   const residential = [...new Set(apartments.map(x => String(x.building)))].sort((a,b)=>Number(a)-Number(b));
   const boilers = new Set(['3514','3515','3544','3545','3570','3595','3615','3645','3685','3715','3720','3735','3770','3775','3825','3845']);
@@ -182,49 +182,31 @@
   }
   function releaseUrls(){urls.forEach(u=>URL.revokeObjectURL(u));urls=[];}
   async function renderGallery(){
-    releaseUrls();$('gallery-grid').replaceChildren();
-    try{
-      let photos=await listPhotos();const filter=$('gallery-filter').value;
-      if(filter==='current')photos=photos.filter(p=>p.location.key===locationKey());
-      else if(filter.startsWith('building:'))photos=photos.filter(p=>p.location.group==='buildings'&&p.location.building===filter.slice(9));
-      else if(filter.startsWith('facility:'))photos=photos.filter(p=>p.location.group==='facilities'&&p.location.facility===filter.slice(9));
-      photos.sort((a,b)=>(a.location.path||'').localeCompare(b.location.path||'')||b.createdAt-a.createdAt);
-      let lastGroup='';
-      $('photo-count').textContent=photos.length+' photo'+(photos.length===1?'':'s');$('gallery-empty').classList.toggle('hide',photos.length>0);
-      for(const p of photos){
-        if(p.location.path!==lastGroup){const heading=document.createElement('h3');heading.className='gallery-group-title';heading.textContent='📁 '+p.location.path;$('gallery-grid').append(heading);lastGroup=p.location.path;}
-        const url=p.blob?URL.createObjectURL(p.blob):null;if(url)urls.push(url);
-        const tile=document.createElement('button');tile.type='button';tile.className='photo-tile';
-        const img=document.createElement(p.blob?'img':'div');if(url){img.src=url;img.alt='Work photo';img.loading='lazy';}else{img.className='cloud-thumbnail';img.textContent='Old cloud-only entry';}
-        const caption=document.createElement('div');caption.className='tile-caption';
-        const title=document.createElement('strong');title.textContent=p.location.path;
-        const date=document.createElement('small');date.textContent=new Date(p.createdAt).toLocaleString();
-        const status=document.createElement('div');status.className='tile-badge'+(p.backupVerifiedAt?' verified':'');status.textContent=!p.blob?'No local image (legacy record)':p.backupVerifiedAt?'✓ Computer backup confirmed':p.backupBatchId?'● Exported · check on computer':'● On this device only';
-        caption.append(title,date);tile.append(img,caption,status);tile.addEventListener('click',()=>showDetails(p));$('gallery-grid').append(tile);
-      }
-    }catch(e){$('gallery-empty').classList.remove('hide');$('gallery-empty').querySelector('p').textContent='Could not read local photos: '+e.message;}
+    return window.WC_GALLERY_BULK.render();
   }
-  function showDetails(photo){selectedPhoto=photo;if(detailURL)URL.revokeObjectURL(detailURL);detailURL=photo.blob?URL.createObjectURL(photo.blob):null;$('detail-image').classList.toggle('hide',!detailURL);if(detailURL)$('detail-image').src=detailURL;else $('detail-image').removeAttribute('src');$('export-photo').disabled=!photo.blob;$('share-photo').disabled=!photo.blob;$('detail-info').textContent=photo.location.path+' · '+new Date(photo.createdAt).toLocaleString()+' · '+((photo.size||0)/1024/1024).toFixed(2)+' MB · '+(!photo.blob?'No local photo (legacy entry)':photo.backupVerifiedAt?'Computer backup confirmed':'NOT verified on computer');$('photo-dialog').showModal();}
-  function closeDialog(){$('photo-dialog').close();if(detailURL)URL.revokeObjectURL(detailURL);detailURL=null;selectedPhoto=null;}
-  function exportSelected(){if(!selectedPhoto?.blob)return;const a=document.createElement('a');const url=URL.createObjectURL(selectedPhoto.blob);a.href=url;a.download=selectedPhoto.filename||'work-photo.jpg';document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),60000);}
-  async function shareSelected(){
-    if(!selectedPhoto?.blob)return;
-    const photo=selectedPhoto;
-    const name=photo.filename||'work-photo.jpg';
-    const mime=photo.blob.type||(/\.heic$/i.test(name)?'image/heic':/\.heif$/i.test(name)?'image/heif':photo.mime||'image/jpeg');
-    const file=new File([photo.blob],name,{type:mime});
-    if(typeof navigator.share!=='function'||typeof navigator.canShare!=='function'||!navigator.canShare({files:[file]})){
-      alert('This browser cannot share this image directly. Use Download, then share it from Files.');
-      return;
-    }
-    try{
-      await navigator.share({files:[file],title:'Work Camera photo'});
-    }catch(e){
-      if(e?.name!=='AbortError')alert('Could not open sharing: '+(e?.message||'Please try Download instead.'));
-    }
+  function showDetails(photo){
+    selectedPhoto=photo;
+    if(detailURL)URL.revokeObjectURL(detailURL);
+    detailURL=photo.blob?URL.createObjectURL(photo.blob):null;
+    $('detail-image').classList.toggle('hide',!detailURL);
+    if(detailURL)$('detail-image').src=detailURL;
+    else $('detail-image').removeAttribute('src');
+    $('select-preview-photo').disabled=!photo.blob;
+    $('select-preview-photo').textContent=window.WC_GALLERY_BULK.isSelected(photo.id)?'✓ Unselect photo':'✓ Select photo';
+    $('detail-info').textContent=photo.location.path+' · '+new Date(photo.createdAt).toLocaleString()+' · '+((photo.size||0)/1024/1024).toFixed(2)+' MB · '+(!photo.blob?'No local photo (legacy entry)':photo.backupVerifiedAt?'Computer backup confirmed':'NOT verified on computer');
+    $('photo-dialog').showModal();
   }
-  async function removeSelected(){if(!selectedPhoto)return;const reason=selectedPhoto.backupVerifiedAt?'This photo has a manually confirmed computer backup. Delete the local photo permanently?':'WARNING: This photo has NOT been confirmed on a computer. You may destroy its only copy. Delete permanently?';if(!confirm(reason))return;const id=selectedPhoto.id;try{await deletePhoto(id);closeDialog();renderGallery();}catch(e){alert('Delete failed: '+e.message);}}
-
+  function closeDialog(){
+    $('photo-dialog').close();
+    if(detailURL)URL.revokeObjectURL(detailURL);
+    detailURL=null;selectedPhoto=null;
+  }
+  function selectPreviewPhoto(){
+    if(!selectedPhoto)return;
+    const id=selectedPhoto.id;
+    closeDialog();
+    window.WC_GALLERY_BULK.toggle(id);
+  }
   function localImages(all){return all.filter(p=>p.blob&&p.blob.size>0);}
   function pendingBatch(all){
     const pending=localImages(all).filter(p=>p.backupBatchId&&!p.backupVerifiedAt).sort((a,b)=>(a.backupExportedAt||0)-(b.backupExportedAt||0));
@@ -370,7 +352,7 @@
     if(view==='camera'&&!state.confirmed){view='locations';$('open-camera').focus();}
     if(currentView==='camera'&&view!=='camera')stopContinuousCamera();
     currentView=view;document.querySelectorAll('.view').forEach(x=>x.classList.toggle('active',x.id==='view-'+view));document.querySelectorAll('.nav-item').forEach(x=>x.classList.toggle('active',x.dataset.view===view));
-    if(view==='camera')updatePath();if(view==='gallery')await renderGallery();else releaseUrls();if(view==='settings')await renderSettings();if(view==='home')await renderHome();
+    if(view==='camera')updatePath();if(view==='gallery')await renderGallery();else{releaseUrls();window.WC_GALLERY_BULK.release();}if(view==='settings')await renderSettings();if(view==='home')await renderHome();
   }
   function init(){
     $('runtime-version').textContent='V'+APP_VERSION;
@@ -392,13 +374,13 @@
     $('file-import').addEventListener('change',async e=>{const file=e.target.files?.[0];e.target.value='';if(file)await saveBlob(file,file.name);});
     for(const b of buildingIds)$('gallery-filter').append(option('building:'+b,b==='3615'?'3615 · Leasing Office':'Building '+b));
     for(const f of facilities)$('gallery-filter').append(option('facility:'+f.id,f.label));
+    if(!window.WC_GALLERY_BULK)throw new Error('Photo gallery tools could not load.');
+    window.WC_GALLERY_BULK.init({listPhotos,openDb,showDetails,renderHome,locationKey});
     $('gallery-filter').addEventListener('change',renderGallery);
     document.querySelectorAll('.nav-item').forEach(x=>x.addEventListener('click',()=>setView(x.dataset.view)));
     $('close-dialog').addEventListener('click',closeDialog);
     $('photo-dialog').addEventListener('cancel',e=>{e.preventDefault();closeDialog();});
-    $('share-photo').addEventListener('click',shareSelected);
-    $('export-photo').addEventListener('click',exportSelected);
-    $('delete-photo').addEventListener('click',removeSelected);
+    $('select-preview-photo').addEventListener('click',selectPreviewPhoto);
     $('home-take-photo').addEventListener('click',()=>setView('locations'));
     $('home-my-photos').addEventListener('click',()=>setView('gallery'));
     $('home-backup').addEventListener('click',()=>setView('settings'));
