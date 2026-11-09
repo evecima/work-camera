@@ -11,8 +11,8 @@
   <meta name="description" content="Offline maintenance camera and private on-device photo library">
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="apple-touch-icon" href="icons/icon-192.png">
-  <link rel="stylesheet" href="styles.css?v=3.4.0">
-  <title>Work Camera V3.4 — Continuous Camera</title>
+  <link rel="stylesheet" href="styles.css?v=3.5.0">
+  <title>Work Camera V3.5 — Multi-select Gallery</title>
 </head>
 <body>
 <div id="app" class="shell">
@@ -95,9 +95,31 @@
     </section>
 
     <section id="view-gallery" class="view" aria-labelledby="gallery-title">
-      <div class="section-heading"><h2 id="gallery-title">My Photos</h2><p>Photos saved privately inside Work Camera, organized by location.</p></div>
+      <div class="section-heading"><h2 id="gallery-title">My Photos</h2><p>Tap photos to select several. Use the eye icon to view one larger.</p></div>
       <div class="gallery-toolbar"><select id="gallery-filter" aria-label="Filter gallery"><option value="all">All locations</option><option value="current">Current location</option></select><span id="photo-count">0 photos</span></div>
+      <div class="gallery-selection-tools">
+        <button type="button" class="btn btn-secondary" id="gallery-select-visible">Select visible</button>
+        <button type="button" class="btn btn-secondary" id="gallery-clear-selection">Clear</button>
+        <span id="gallery-selection-summary" role="status">Tap images to select</span>
+      </div>
+      <p id="gallery-action-message" class="gallery-action-message" role="status" aria-live="polite"></p>
       <div id="gallery-grid" class="gallery-grid"></div>
+      <div id="gallery-selection-actions" class="gallery-selection-actions hide" role="group" aria-label="Selected photo actions">
+        <strong id="gallery-selected-count">0 selected</strong>
+        <div class="gallery-bulk-buttons">
+          <button type="button" class="btn btn-primary" id="gallery-share">↗ Share</button>
+          <button type="button" class="btn btn-secondary" id="gallery-download">↓ Download</button>
+          <button type="button" class="btn btn-danger" id="gallery-delete">Delete</button>
+        </div>
+        <div id="gallery-prepared-zip" class="gallery-prepared-zip hide">
+          <span id="gallery-zip-info"></span>
+          <div class="gallery-prepared-actions">
+            <button type="button" class="btn btn-primary" id="gallery-save-zip">Save ZIP</button>
+            <button type="button" class="btn btn-secondary" id="gallery-discard-zip">Cancel</button>
+          </div>
+        </div>
+        <p id="gallery-action-toast" role="status" aria-live="polite"></p>
+      </div>
       <div id="gallery-empty" class="empty"><span>🖼️</span><h3>No photos yet</h3><p>Choose a location, open the camera and take a photo.</p></div>
     </section>
 
@@ -144,10 +166,11 @@
 <dialog id="photo-dialog" aria-label="Photo details">
   <div class="dialog-inner"><div class="dialog-head"><strong>Photo details</strong><button id="close-dialog" type="button" aria-label="Close">✕</button></div>
   <img id="detail-image" alt="Work photo preview"><div id="detail-info"></div>
-  <div class="dialog-actions"><button id="share-photo" class="btn btn-primary" type="button">↗ Share</button><button id="export-photo" class="btn btn-secondary" type="button">Download</button><button id="delete-photo" class="btn btn-danger" type="button">Delete</button></div></div>
+  <div class="dialog-actions"><button id="select-preview-photo" class="btn btn-primary" type="button">✓ Select photo</button></div><p class="hint">Select one or more photos in My Photos to share, download or delete them together.</p></div>
 </dialog>
-<script src="data/apartments.js?v=3.4.0"></script>
-<script src="local-backup.js?v=3.4.0" defer></script>
-<script src="app.js?v=3.4.0" defer></script>
+<script src="data/apartments.js?v=3.5.0"></script>
+<script src="local-backup.js?v=3.5.0" defer></script>
+<script src="gallery-bulk.js?v=3.5.0" defer></script>
+<script src="app.js?v=3.5.0" defer></script>
 </body>
 </html>
