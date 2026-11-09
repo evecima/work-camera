@@ -70,7 +70,7 @@
     if(!items.length)return {title:'Work Camera',text:''};
     if(items.length===1){
       const p=items[0];
-      return {title:caption(p),text:'📍 '+locationLabel(p)+'\n📅 '+localTimestamp(p).replace('_',' ').replace(/_(\d\d)-(\d\d)-(\d\d)$/,' $1:$2:$3')+'\n📎 '+photoFileName(p)};
+      return {title:caption(p),text:'📍 '+locationLabel(p)+'\n📅 '+localTimestamp(p).replace(/_(\d\d)-(\d\d)-(\d\d)$/,' $1:$2:$3')+'\n📎 '+photoFileName(p)};
     }
     const locations=[...new Set(items.map(locationLabel))];
     const title=items.length+' photos · '+(locations.length===1?locations[0]:locations.length+' locations');
