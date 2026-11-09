@@ -1,4 +1,4 @@
-# Work Camera V3.9 — private, local-only iPhone photo library
+# Work Camera V3.10 — private, local-only iPhone photo library
 
 **Independent PWA. Apartment Finder (`evecima/gb-af-tool`) remains unchanged.** Live app: https://evecima.github.io/work-camera/
 
@@ -46,6 +46,17 @@ The app derives virtual folders from photo location metadata already stored in I
 - By default, empty buildings/facilities are omitted from the **My Photos** location dropdown only. **Show empty buildings** temporarily includes all 54 residential building choices plus the separate 3615 Leasing Office location and all three facilities. The **Take Photo** building/area choices are unchanged.
 - If the last photo from a selected building is removed while empty entries are hidden, the gallery returns to `All locations` rather than leaving an invalid filter. `Select visible` continues to select only displayed photos; existing multi-selection across filters remains intact.
 - Opening **My Photos** after taking new photos refreshes the counts. No thumbnails are altered, photo blobs are not changed, and IndexedDB schema stays at its original version.
+
+## WhatsApp photo captions (v3.10)
+
+The iOS share sheet shows the original file name, but WhatsApp usually displays shared pictures as **inline media** and may not show the filename. Previously the iOS Web Share payload included the generic title `Work Camera photo`, which WhatsApp displayed as the photo caption.
+
+The **Share** action now supplies:
+- An identifying `title` containing building, area/apartment and saved date/time for a **single** picture; multiple pictures receive a summary with count and common location (when available).
+- A readable `text` description including location, date/time and the unique descriptive filename (or a numbered list for multi-photo sharing).
+- The same original image file(s) with their descriptive names as before.
+
+**Receiving applications decide whether to use the supplied title/text.** WhatsApp may use one field, both, or neither. For guaranteed visible context in a chat, My Photos' new **Copy location + date + time** button copies selected photo details to the clipboard so you can paste them into WhatsApp as a separate message or caption. If you need to **preserve the exact filename** as an attachment, export via **Download** → **Save to Files** and send it in WhatsApp as **Document → Choose from Files**; a document normally displays its filename instead of a full-size inline photo preview. Do not confuse ordinary photo sharing with document sharing. No images are uploaded by Work Camera.
 
 ## Descriptive photo names when sharing and exporting
 

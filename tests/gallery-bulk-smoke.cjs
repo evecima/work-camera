@@ -57,12 +57,12 @@ async function main(){
     photo('three','k2',new Blob(['third'],{type:'image/jpeg'})),
     photo('legacy','k1',null)
   ];
-  const removed=[];let allowDelete=false;let typed='';let shared=null;let zipCount=0;let previewed=null;
+  const removed=[];let allowDelete=false;let typed='';let shared=null;let copied=null;let zipCount=0;let previewed=null;
   const doc={getElementById:get,createElement:tag=>new MockElement(tag)};
   const sandbox={
     window:{WC_BACKUP:{makeZip:async batch=>{zipCount=batch.length;return new Blob(['fake-zip'],{type:'application/zip'});}}},
     document:doc,Blob,File,Date,Set,Map,URL:{createObjectURL:()=> 'blob:work-camera-test',revokeObjectURL:()=>{}},
-    navigator:{share:args=>{shared=args;return Promise.resolve();},canShare:()=>true},
+    navigator:{share:args=>{shared=args;return Promise.resolve();},canShare:()=>true,clipboard:{writeText:async value=>{copied=value;}}},
     confirm:()=>allowDelete,prompt:()=>typed,setTimeout
   };
   vm.runInNewContext(fs.readFileSync(path.join(__dirname,'../photo-naming.js'),'utf8'),sandbox);
@@ -147,6 +147,14 @@ async function main(){
   get('gallery-share').click();
   await Promise.resolve();
   assert.equal(shared.files.length,1,'Single-photo share must contain one original');
+  assert.match(shared.title,/Building 3544 \/ Boiler Room · \d{4}-\d\d-\d\d \d\d:\d\d:\d\d/,'Shared title should include location and exact time rather than generic Work Camera photo');
+  assert.match(shared.text,/📍 Building 3544 \/ Boiler Room/);
+  assert.match(shared.text,/Building_3544_Boiler_Room/);
+  assert(!shared.title.includes('Work Camera photo'),'Generic title must no longer be sent');
+  get('gallery-copy-details').click();
+  await new Promise(resolve=>setImmediate(resolve));
+  assert.match(copied,/Building 3544 \/ Boiler Room/,'Copy details must include location');
+  assert.match(copied,/\d{4}-\d\d-\d\d \d\d:\d\d:\d\d/,'Copy details must include date and time');
   assert.match(shared.files[0].name,/^Building_3544_Boiler_Room_\d{4}-\d\d-\d\d_\d\d-\d\d-\d\d_one\.jpg$/,'Shared file must have descriptive building, area, timestamp and ID');
   get('gallery-clear-selection').click();
   assert(!bulk.isSelected('one'));
@@ -160,6 +168,9 @@ async function main(){
   get('gallery-share').click();
   await Promise.resolve();
   assert.equal(shared.files.length,2,'Bulk share must send both selected image files');
+  assert.match(shared.title,/^2 photos · Building 3544 \/ Boiler Room$/,'Sharing multiple photos must indicate their common location');
+  assert.match(shared.text,/1\. Building 3544 \/ Boiler Room/);
+  assert.match(shared.text,/2\. Building 3544 \/ Boiler Room/);
   assert.equal(new Set(shared.files.map(file=>file.name)).size,2,'Multiple shared images must have distinct names');
   get('gallery-download').click();
   await new Promise(resolve=>setImmediate(resolve));
