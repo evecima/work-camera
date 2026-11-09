@@ -333,10 +333,11 @@
     }
     try{
       // Construct files synchronously in the user gesture: iOS Web Share may lose activation across awaits.
-      const files=photos.map((photo,i)=>{
-        const name=(photo.filename||'work-photo.jpg').replace(/[^a-zA-Z0-9._-]/g,'_');
+      if(!root.WC_PHOTO_NAMING)throw new Error('Photo naming module unavailable.');
+      const files=photos.map(photo=>{
+        const name=root.WC_PHOTO_NAMING.photoFileName(photo);
         const mime=photo.blob.type||photo.mime||(/\.heic$/i.test(name)?'image/heic':/\.heif$/i.test(name)?'image/heif':'image/jpeg');
-        return new File([photo.blob],'WC_'+(i+1)+'_'+name,{type:mime});
+        return new File([photo.blob],name,{type:mime});
       });
       if(typeof navigator.share!=='function'||typeof navigator.canShare!=='function'||!navigator.canShare({files})){
         notice('This device cannot share all selected files directly. Try fewer photos or use Download for a ZIP.',true);
@@ -351,8 +352,10 @@
     if(busy)return;
     const photos=selectedPhotos();if(!photos.length)return;
     if(photos.length===1){
-      downloadBlob(photos[0].blob,photos[0].filename||'work-photo.jpg');
-      notice('Download requested. This does not confirm a computer backup.');return;
+      if(!root.WC_PHOTO_NAMING){notice('Photo naming module unavailable.',true);return;}
+      const name=root.WC_PHOTO_NAMING.photoFileName(photos[0]);
+      downloadBlob(photos[0].blob,name);
+      notice('Download requested: '+name+'. This does not confirm a computer backup.');return;
     }
     const bytes=photos.reduce((sum,p)=>sum+p.blob.size,0);
     if(photos.length>MAX_ARCHIVE_COUNT||bytes>MAX_ARCHIVE_BYTES){
